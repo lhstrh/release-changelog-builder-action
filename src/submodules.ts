@@ -24,12 +24,12 @@ export class Submodules {
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
     for (const path of paths) {
-      const baseRef = this.fetchRef(owner, repo, path, fromTag)
-      const headRef = this.fetchRef(owner, repo, path, toTag)
+      const baseRef = await this.fetchRef(owner, repo, path, fromTag)
+      const headRef = await this.fetchRef(owner, repo, path, toTag)
       const info = {
         path,
-        baseRef: (await baseRef).data.toString(),
-        headRef: (await headRef).data.toString()
+        baseRef: baseRef.data.toString(),
+        headRef: headRef.data.toString()
       }
       if (
         this.shaRegex.test(info.baseRef) &&
