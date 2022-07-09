@@ -1062,13 +1062,13 @@ class Submodules {
             return modsInfo;
         });
     }
-    fetchRef(owner, repo, path, tag) {
+    fetchRef(owner, repo, path, ref) {
         return __awaiter(this, void 0, void 0, function* () {
             const options = this.octokit.repos.getContent.endpoint.merge({
                 owner,
                 repo,
                 path,
-                tag
+                ref
             });
             return this.octokit.repos.getContent(options);
         });
