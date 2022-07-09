@@ -6,6 +6,8 @@ import {
   writeOutput
 } from './utils'
 import {ReleaseNotesBuilder} from './releaseNotesBuilder'
+import {Octokit} from '@octokit/rest'
+import {Submodules} from './submodules'
 
 async function run(): Promise<void> {
   core.setOutput('failed', false) // mark the action not failed by default
@@ -38,9 +40,14 @@ async function run(): Promise<void> {
     const fetchReviewers = core.getInput('fetchReviewers') === 'true'
     const commitMode = core.getInput('commitMode') === 'true'
 
+    // load octokit instance
+    const octokit = new Octokit({
+      auth: `token ${token || process.env.GITHUB_TOKEN}`,
+      baseUrl: `${baseUrl || 'https://api.github.com'}`
+    })
+
     const result = await new ReleaseNotesBuilder(
-      baseUrl,
-      token,
+      octokit,
       repositoryPath,
       owner,
       repo,
@@ -54,6 +61,22 @@ async function run(): Promise<void> {
       configuration
     ).build()
 
+    // FIXME: Compile a log for each of these and append it.
+    const submodules = await new Submodules(octokit, failOnError).getSubmodules(
+      owner,
+      repo,
+      fromTag,
+      toTag,
+      ['org.lflang/src/lib/c/reactor-c']
+    )
+    for (const submodule of submodules) {
+      // eslint-disable-next-line no-console
+      console.log(`Path: ${submodule.path}`)
+      // eslint-disable-next-line no-console
+      console.log(`BaseRef: ${submodule.baseRef}`)
+      // eslint-disable-next-line no-console
+      console.log(`HeadRef: ${submodule.headRef}`)
+    }
     core.setOutput('changelog', result)
 
     // write the result in changelog to file if possible

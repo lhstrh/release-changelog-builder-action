@@ -8,8 +8,7 @@ import {fillAdditionalPlaceholders} from './transform'
 
 export class ReleaseNotesBuilder {
   constructor(
-    private baseUrl: string | null,
-    private token: string | null,
+    private octokit: Octokit,
     private repositoryPath: string,
     private owner: string | null,
     private repo: string | null,
@@ -41,15 +40,9 @@ export class ReleaseNotesBuilder {
     }
     core.endGroup()
 
-    // load octokit instance
-    const octokit = new Octokit({
-      auth: `token ${this.token || process.env.GITHUB_TOKEN}`,
-      baseUrl: `${this.baseUrl || 'https://api.github.com'}`
-    })
-
     // ensure proper from <-> to tag range
     core.startGroup(`🔖 Resolve tags`)
-    const tagsApi = new Tags(octokit)
+    const tagsApi = new Tags(this.octokit)
     const tagRange = await tagsApi.retrieveRange(
       this.repositoryPath,
       this.owner,
@@ -96,7 +89,7 @@ export class ReleaseNotesBuilder {
       commitMode: this.commitMode,
       configuration: this.configuration
     }
-    const releaseNotes = new ReleaseNotes(octokit, options)
+    const releaseNotes = new ReleaseNotes(this.octokit, options)
 
     return (
       (await releaseNotes.pull()) ||
