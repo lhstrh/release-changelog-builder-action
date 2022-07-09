@@ -50,13 +50,13 @@ export class Submodules {
     owner: string,
     repo: string,
     path: string,
-    tag: string
+    ref: string
   ): Promise<contentReqResponse> {
     const options = this.octokit.repos.getContent.endpoint.merge({
       owner,
       repo,
       path,
-      tag
+      ref
     })
     return this.octokit.repos.getContent(options)
   }
