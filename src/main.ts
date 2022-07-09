@@ -69,15 +69,15 @@ async function run(): Promise<void> {
       toTag,
       ['org.lflang/src/lib/c/reactor-c']
     )
+    let found = result
     for (const submodule of submodules) {
-      // eslint-disable-next-line no-console
-      console.log(`Path: ${submodule.path}`)
-      // eslint-disable-next-line no-console
-      console.log(`BaseRef: ${submodule.baseRef}`)
-      // eslint-disable-next-line no-console
-      console.log(`HeadRef: ${submodule.headRef}`)
+      found = `
+      Path: ${submodule.path}
+      BaseRef: ${submodule.baseRef}
+      HeadRef: ${submodule.headRef}
+      URL: ${submodule.url}`
     }
-    core.setOutput('changelog', result)
+    core.setOutput('changelog', found)
 
     // write the result in changelog to file if possible
     const outputFile: string = core.getInput('outputFile')

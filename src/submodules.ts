@@ -3,17 +3,15 @@ import {failOrError} from './utils'
 
 type contentReqResponse =
   RestEndpointMethodTypes['repos']['getContent']['response']
-
 export interface SubmoduleInfo {
   path: string
   baseRef: string
   headRef: string
+  url: string
 }
 
 export class Submodules {
   constructor(private octokit: Octokit, private failOnError: boolean) {}
-
-  private readonly shaRegex = /^[a-f0-9]{64}$/gi
 
   async getSubmodules(
     owner: string,
@@ -24,25 +22,23 @@ export class Submodules {
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
     for (const path of paths) {
-      const baseRef = this.fetchRef(owner, repo, path, fromTag)
-      const headRef = this.fetchRef(owner, repo, path, toTag)
+      const baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
+      const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
 
-      const info = {
-        path,
-        baseRef: (await baseRef).data.toString(),
-        headRef: (await headRef).data.toString()
-      }
       if (
-        this.shaRegex.test(info.baseRef) &&
-        this.shaRegex.test(info.headRef)
+        !Array.isArray(baseRef) &&
+        !Array.isArray(headRef) &&
+        baseRef.url === headRef.url
       ) {
-        modsInfo.push(info)
+        modsInfo.push({
+          path,
+          baseRef: baseRef.sha,
+          headRef: headRef.sha,
+          url: baseRef.url
+        })
       } else {
         failOrError(
-          `💥 Missing or couldn't resolve submodule path '${path}'.\n
-          Found base ref: ${info.baseRef}\n
-          Found head ref: ${info.headRef}
-          `,
+          `💥 Missing or couldn't resolve submodule path '${path}'.\n`,
           this.failOnError
         )
       }

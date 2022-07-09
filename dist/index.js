@@ -396,15 +396,15 @@ function run() {
             const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
             // FIXME: Compile a log for each of these and append it.
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, ['org.lflang/src/lib/c/reactor-c']);
+            let found = result;
             for (const submodule of submodules) {
-                // eslint-disable-next-line no-console
-                console.log(`Path: ${submodule.path}`);
-                // eslint-disable-next-line no-console
-                console.log(`BaseRef: ${submodule.baseRef}`);
-                // eslint-disable-next-line no-console
-                console.log(`HeadRef: ${submodule.headRef}`);
+                found = `
+      Path: ${submodule.path}
+      BaseRef: ${submodule.baseRef}
+      HeadRef: ${submodule.headRef}
+      URL: ${submodule.url}`;
             }
-            core.setOutput('changelog', result);
+            core.setOutput('changelog', found);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
             if (outputFile !== '') {
@@ -1038,28 +1038,25 @@ class Submodules {
     constructor(octokit, failOnError) {
         this.octokit = octokit;
         this.failOnError = failOnError;
-        this.shaRegex = /^[a-f0-9]{64}$/gi;
     }
     getSubmodules(owner, repo, fromTag, toTag, paths) {
         return __awaiter(this, void 0, void 0, function* () {
             const modsInfo = [];
             for (const path of paths) {
-                const baseRef = this.fetchRef(owner, repo, path, fromTag);
-                const headRef = this.fetchRef(owner, repo, path, toTag);
-                const info = {
-                    path,
-                    baseRef: (yield baseRef).data.toString(),
-                    headRef: (yield headRef).data.toString()
-                };
-                if (this.shaRegex.test(info.baseRef) &&
-                    this.shaRegex.test(info.headRef)) {
-                    modsInfo.push(info);
+                const baseRef = (yield this.fetchRef(owner, repo, path, fromTag)).data;
+                const headRef = (yield this.fetchRef(owner, repo, path, toTag)).data;
+                if (!Array.isArray(baseRef) &&
+                    !Array.isArray(headRef) &&
+                    baseRef.url === headRef.url) {
+                    modsInfo.push({
+                        path,
+                        baseRef: baseRef.sha,
+                        headRef: headRef.sha,
+                        url: baseRef.url
+                    });
                 }
                 else {
-                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n
-          Found base ref: ${info.baseRef}\n
-          Found head ref: ${info.headRef}
-          `, this.failOnError);
+                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
                 }
             }
             return modsInfo;
