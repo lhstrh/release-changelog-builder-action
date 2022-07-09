@@ -28,13 +28,16 @@ export class Submodules {
       if (
         !Array.isArray(baseRef) &&
         !Array.isArray(headRef) &&
-        baseRef.url === headRef.url
+        'submodule_git_url' in baseRef &&
+        'submodule_git_url' in headRef &&
+        baseRef.submodule_git_url !== undefined &&
+        baseRef.submodule_git_url === headRef.submodule_git_url
       ) {
         modsInfo.push({
           path,
           baseRef: baseRef.sha,
           headRef: headRef.sha,
-          url: baseRef.url
+          url: baseRef.submodule_git_url
         })
       } else {
         failOrError(
