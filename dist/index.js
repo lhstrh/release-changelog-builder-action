@@ -1057,8 +1057,8 @@ class Submodules {
                 }
                 else {
                     (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n
-          Found base ref: ${baseRef}\n
-          Found head ref: ${headRef}
+          Found base ref: ${info.baseRef}\n
+          Found head ref: ${info.headRef}
           `, this.failOnError);
                 }
             }

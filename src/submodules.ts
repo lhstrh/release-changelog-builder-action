@@ -24,12 +24,13 @@ export class Submodules {
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
     for (const path of paths) {
-      const baseRef = await this.fetchRef(owner, repo, path, fromTag)
-      const headRef = await this.fetchRef(owner, repo, path, toTag)
+      const baseRef = this.fetchRef(owner, repo, path, fromTag)
+      const headRef = this.fetchRef(owner, repo, path, toTag)
+
       const info = {
         path,
-        baseRef: baseRef.data.toString(),
-        headRef: headRef.data.toString()
+        baseRef: (await baseRef).data.toString(),
+        headRef: (await headRef).data.toString()
       }
       if (
         this.shaRegex.test(info.baseRef) &&
@@ -39,8 +40,8 @@ export class Submodules {
       } else {
         failOrError(
           `💥 Missing or couldn't resolve submodule path '${path}'.\n
-          Found base ref: ${baseRef}\n
-          Found head ref: ${headRef}
+          Found base ref: ${info.baseRef}\n
+          Found head ref: ${info.headRef}
           `,
           this.failOnError
         )
