@@ -1052,11 +1052,14 @@ class Submodules {
                     headRef: (yield headRef).data.toString()
                 };
                 if (this.shaRegex.test(info.baseRef) &&
-                    this.shaRegex.test(info.baseRef)) {
+                    this.shaRegex.test(info.headRef)) {
                     modsInfo.push(info);
                 }
                 else {
-                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'`, this.failOnError);
+                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n
+          Found base ref: ${baseRef}\n
+          Found head ref: ${headRef}
+          `, this.failOnError);
                 }
             }
             return modsInfo;
