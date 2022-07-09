@@ -1,7 +1,7 @@
 import {buildChangelog} from '../src/transform'
 import {PullRequestInfo} from '../src/pullRequests'
 import moment from 'moment'
-import { DefaultConfiguration, Configuration } from '../src/configuration';
+import {DefaultConfiguration, Configuration} from '../src/configuration'
 
 jest.setTimeout(180000)
 
@@ -44,7 +44,7 @@ mergedPullRequests.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 2,
@@ -62,7 +62,7 @@ mergedPullRequests.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 3,
@@ -80,7 +80,7 @@ mergedPullRequests.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 4,
@@ -98,7 +98,7 @@ mergedPullRequests.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   }
 )
 
@@ -118,7 +118,7 @@ const pullRequestWithLabelInBody: PullRequestInfo = {
   assignees: [],
   requestedReviewers: [],
   approvedReviewers: [],
-  status: "merged"
+  status: 'merged'
 }
 
 it('Extract label from title, combined regex', async () => {
@@ -147,7 +147,6 @@ it('Extract label from title, combined regex', async () => {
   )
 })
 
-
 it('Extract label from title and body, combined regex', async () => {
   configuration.label_extractor = [
     {
@@ -156,7 +155,7 @@ it('Extract label from title and body, combined regex', async () => {
       on_property: ['title', 'body']
     }
   ]
-  
+
   let prs = Array.from(mergedPullRequests)
   prs.push(pullRequestWithLabelInBody)
   const resultChangelog = buildChangelog(prs, {
@@ -310,7 +309,7 @@ pullRequestsWithLabels.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 2,
@@ -328,7 +327,7 @@ pullRequestsWithLabels.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 3,
@@ -346,7 +345,7 @@ pullRequestsWithLabels.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   },
   {
     number: 4,
@@ -364,7 +363,7 @@ pullRequestsWithLabels.push(
     assignees: [],
     requestedReviewers: [],
     approvedReviewers: [],
-    status: "merged"
+    status: 'merged'
   }
 )
 
@@ -432,7 +431,7 @@ it('Deduplicate duplicated PRs', async () => {
 
 it('Deduplicate duplicated PRs DESC', async () => {
   const customConfig = Object.assign({}, DefaultConfiguration)
-  customConfig.sort = "DESC"
+  customConfig.sort = 'DESC'
   customConfig.duplicate_filter = {
     pattern: '\\[ABC-....\\]',
     on_property: 'title',
@@ -456,18 +455,17 @@ it('Deduplicate duplicated PRs DESC', async () => {
   )
 })
 
-
 it('Use empty_content for empty category', async () => {
   const customConfig = Object.assign({}, DefaultConfiguration)
   customConfig.categories = [
     {
       title: '## 🚀 Features and 🐛 Issues',
       labels: ['Never-Matching-Category'],
-      empty_content: "- No PRs in this category"
+      empty_content: '- No PRs in this category'
     },
     {
       title: '## 🚀 Features',
-      labels: ['Feature'],
+      labels: ['Feature']
     }
   ]
 
@@ -490,8 +488,8 @@ it('Use empty_content for empty category', async () => {
 
 it('Commit SHA-1 in commitMode', async () => {
   const customConfig = Object.assign({}, DefaultConfiguration)
-  customConfig.sort = "DESC"
-  customConfig.pr_template = "${{MERGE_SHA}}"
+  customConfig.sort = 'DESC'
+  customConfig.pr_template = '${{MERGE_SHA}}'
 
   const resultChangelog = buildChangelog(pullRequestsWithLabels, {
     owner: 'mikepenz',
@@ -512,7 +510,7 @@ it('Commit SHA-1 in commitMode', async () => {
 
 it('Release Diff', async () => {
   const customConfig = Object.assign({}, DefaultConfiguration)
-  customConfig.template = "${{RELEASE_DIFF}}"
+  customConfig.template = '${{RELEASE_DIFF}}'
 
   const resultChangelog = buildChangelog(pullRequestsWithLabels, {
     owner: 'mikepenz',
@@ -530,7 +528,6 @@ it('Release Diff', async () => {
     `https://github.com/mikepenz/release-changelog-builder-action/compare/v2.8.0...v2.8.1`
   )
 })
-
 
 it('Use exclude labels to not include a PR within a category.', async () => {
   const customConfig = Object.assign({}, DefaultConfiguration)

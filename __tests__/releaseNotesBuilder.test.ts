@@ -255,17 +255,17 @@ it('Verify default inclusion of open PRs', async () => {
   const releaseNotesBuilder = new ReleaseNotesBuilder(
     null, // baseUrl
     null, // token
-    '.',  // repoPath
-    'mikepenz',                                         // user
-    'release-changelog-builder-action-playground',      // repo
-    '1.5.0',         // fromTag
-    '2.0.0',         // toTag
-    true,  // includeOpen
+    '.', // repoPath
+    'mikepenz', // user
+    'release-changelog-builder-action-playground', // repo
+    '1.5.0', // fromTag
+    '2.0.0', // toTag
+    true, // includeOpen
     false, // failOnError
     false, // ignorePrePrelease
     false, // enable to fetch reviewers
     false, // commitMode
-    configuration  // configuration
+    configuration // configuration
   )
 
   const changeLog = await releaseNotesBuilder.build()
@@ -283,17 +283,17 @@ it('Verify custom categorisation of open PRs', async () => {
   const releaseNotesBuilder = new ReleaseNotesBuilder(
     null, // baseUrl
     null, // token
-    '.',  // repoPath
-    'mikepenz',                                         // user
-    'release-changelog-builder-action-playground',      // repo
-    '1.5.0',         // fromTag
-    '2.0.0',         // toTag
-    true,  // includeOpen
+    '.', // repoPath
+    'mikepenz', // user
+    'release-changelog-builder-action-playground', // repo
+    '1.5.0', // fromTag
+    '2.0.0', // toTag
+    true, // includeOpen
     false, // failOnError
     false, // ignorePrePrelease
     false, // enable to fetch reviewers
     false, // commitMode
-    configuration  // configuration
+    configuration // configuration
   )
 
   const changeLog = await releaseNotesBuilder.build()
@@ -311,17 +311,17 @@ it('Verify reviewers who approved are fetched', async () => {
   const releaseNotesBuilder = new ReleaseNotesBuilder(
     null, // baseUrl
     null, // token
-    '.',  // repoPath
-    'mikepenz',                                         // user
-    'release-changelog-builder-action-playground',      // repo
-    '1.5.0',         // fromTag
-    '2.0.0',         // toTag
-    true,  // includeOpen
+    '.', // repoPath
+    'mikepenz', // user
+    'release-changelog-builder-action-playground', // repo
+    '1.5.0', // fromTag
+    '2.0.0', // toTag
+    true, // includeOpen
     false, // failOnError
     false, // ignorePrePrelease
-    true,  // enable to fetch reviewers
+    true, // enable to fetch reviewers
     false, // commitMode
-    configuration  // configuration
+    configuration // configuration
   )
 
   const changeLog = await releaseNotesBuilder.build()

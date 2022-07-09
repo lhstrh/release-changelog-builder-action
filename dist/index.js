@@ -361,6 +361,8 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const utils_1 = __nccwpck_require__(918);
 const releaseNotesBuilder_1 = __nccwpck_require__(4883);
+const rest_1 = __nccwpck_require__(5375);
+const submodules_1 = __nccwpck_require__(4499);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.setOutput('failed', false); // mark the action not failed by default
@@ -386,7 +388,22 @@ function run() {
             const failOnError = core.getInput('failOnError') === 'true';
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
-            const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(baseUrl, token, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            // load octokit instance
+            const octokit = new rest_1.Octokit({
+                auth: `token ${token || process.env.GITHUB_TOKEN}`,
+                baseUrl: `${baseUrl || 'https://api.github.com'}`
+            });
+            const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            // FIXME: Compile a log for each of these and append it.
+            const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, ['org.lflang/src/lib/c/reactor-c']);
+            for (const submodule of submodules) {
+                // eslint-disable-next-line no-console
+                console.log(`Path: ${submodule.path}`);
+                // eslint-disable-next-line no-console
+                console.log(`BaseRef: ${submodule.baseRef}`);
+                // eslint-disable-next-line no-console
+                console.log(`HeadRef: ${submodule.headRef}`);
+            }
             core.setOutput('changelog', result);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
@@ -914,15 +931,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReleaseNotesBuilder = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const configuration_1 = __nccwpck_require__(5527);
-const rest_1 = __nccwpck_require__(5375);
 const releaseNotes_1 = __nccwpck_require__(5882);
 const tags_1 = __nccwpck_require__(7532);
 const utils_1 = __nccwpck_require__(918);
 const transform_1 = __nccwpck_require__(1644);
 class ReleaseNotesBuilder {
-    constructor(baseUrl, token, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration) {
-        this.baseUrl = baseUrl;
-        this.token = token;
+    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration) {
+        this.octokit = octokit;
         this.repositoryPath = repositoryPath;
         this.owner = owner;
         this.repo = repo;
@@ -955,14 +970,9 @@ class ReleaseNotesBuilder {
                 core.debug(`Resolved 'repo' as ${this.repo}`);
             }
             core.endGroup();
-            // load octokit instance
-            const octokit = new rest_1.Octokit({
-                auth: `token ${this.token || process.env.GITHUB_TOKEN}`,
-                baseUrl: `${this.baseUrl || 'https://api.github.com'}`
-            });
             // ensure proper from <-> to tag range
             core.startGroup(`🔖 Resolve tags`);
-            const tagsApi = new tags_1.Tags(octokit);
+            const tagsApi = new tags_1.Tags(this.octokit);
             const tagRange = yield tagsApi.retrieveRange(this.repositoryPath, this.owner, this.repo, this.fromTag, this.toTag, this.ignorePreReleases, this.configuration.max_tags_to_fetch ||
                 configuration_1.DefaultConfiguration.max_tags_to_fetch, this.configuration.tag_resolver || configuration_1.DefaultConfiguration.tag_resolver);
             const thisTag = (_a = tagRange.to) === null || _a === void 0 ? void 0 : _a.name;
@@ -995,7 +1005,7 @@ class ReleaseNotesBuilder {
                 commitMode: this.commitMode,
                 configuration: this.configuration
             };
-            const releaseNotes = new releaseNotes_1.ReleaseNotes(octokit, options);
+            const releaseNotes = new releaseNotes_1.ReleaseNotes(this.octokit, options);
             return ((yield releaseNotes.pull()) ||
                 (0, transform_1.fillAdditionalPlaceholders)(this.configuration.empty_template ||
                     configuration_1.DefaultConfiguration.empty_template, options));
@@ -1003,6 +1013,68 @@ class ReleaseNotesBuilder {
     }
 }
 exports.ReleaseNotesBuilder = ReleaseNotesBuilder;
+
+
+/***/ }),
+
+/***/ 4499:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Submodules = void 0;
+const utils_1 = __nccwpck_require__(918);
+class Submodules {
+    constructor(octokit, failOnError) {
+        this.octokit = octokit;
+        this.failOnError = failOnError;
+        this.shaRegex = /^[a-f0-9]{64}$/gi;
+    }
+    getSubmodules(owner, repo, fromTag, toTag, paths) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const modsInfo = [];
+            for (const path of paths) {
+                const baseRef = this.fetchRef(owner, repo, path, fromTag);
+                const headRef = this.fetchRef(owner, repo, path, toTag);
+                const info = {
+                    path,
+                    baseRef: (yield baseRef).data.toString(),
+                    headRef: (yield headRef).data.toString()
+                };
+                if (this.shaRegex.test(info.baseRef) &&
+                    this.shaRegex.test(info.baseRef)) {
+                    modsInfo.push(info);
+                }
+                else {
+                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'`, this.failOnError);
+                }
+            }
+            return modsInfo;
+        });
+    }
+    fetchRef(owner, repo, path, tag) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const options = this.octokit.repos.getContent.endpoint.merge({
+                owner,
+                repo,
+                path,
+                tag
+            });
+            return this.octokit.repos.getContent(options);
+        });
+    }
+}
+exports.Submodules = Submodules;
 
 
 /***/ }),
