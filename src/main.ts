@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import * as path from 'path'
 import {
   resolveConfiguration,
   retrieveRepositoryPath,
@@ -61,23 +62,44 @@ async function run(): Promise<void> {
       configuration
     ).build()
 
-    // FIXME: Compile a log for each of these and append it.
+    const submodule_paths = configuration.submodule_paths
     const submodules = await new Submodules(octokit, failOnError).getSubmodules(
       owner,
       repo,
       fromTag,
       toTag,
-      ['org.lflang/src/lib/c/reactor-c']
+      submodule_paths
     )
-    let found = result
-    for (const submodule of submodules) {
-      found = `
-      Path: ${submodule.path}
-      BaseRef: ${submodule.baseRef}
-      HeadRef: ${submodule.headRef}
-      URL: ${submodule.url}`
+    configuration.submodule_paths = []
+
+    let appendix = ''
+
+    if (submodules.length > 0) {
+      appendix += configuration.preamble
     }
-    core.setOutput('changelog', found)
+
+    for (const submodule of submodules) {
+      // FIXME parameterize this
+      configuration.preamble = `## Submodule [${path.dirname(
+        submodule.path
+      )}](${submodule.url})
+      `
+      appendix += await new ReleaseNotesBuilder(
+        octokit,
+        submodule.path,
+        owner,
+        submodule.url,
+        submodule.baseRef,
+        submodule.headRef,
+        includeOpen,
+        failOnError,
+        ignorePreReleases,
+        fetchReviewers,
+        commitMode,
+        configuration
+      ).build()
+    }
+    core.setOutput('changelog', `${result}\n${appendix}`)
 
     // write the result in changelog to file if possible
     const outputFile: string = core.getInput('outputFile')

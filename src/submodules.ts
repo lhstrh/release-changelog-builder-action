@@ -1,4 +1,5 @@
 import {Octokit, RestEndpointMethodTypes} from '@octokit/rest'
+import * as core from '@actions/core'
 import {failOrError} from './utils'
 
 type contentReqResponse =
@@ -39,6 +40,13 @@ export class Submodules {
           headRef: headRef.sha,
           url: baseRef.submodule_git_url
         })
+
+        core.info(`⚙️ Submodule found! 
+            Path: ${path}
+            BaseRef: ${baseRef}
+            HeadRef: ${headRef}
+            URL: ${baseRef.submodule_git_url}
+        `)
       } else {
         failOrError(
           `💥 Missing or couldn't resolve submodule path '${path}'.\n`,

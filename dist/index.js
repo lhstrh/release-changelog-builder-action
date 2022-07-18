@@ -149,6 +149,7 @@ exports.filterCommits = filterCommits;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DefaultConfiguration = void 0;
 exports.DefaultConfiguration = {
+    preamble: '',
     max_tags_to_fetch: 200,
     max_pull_requests: 200,
     max_back_track_time_days: 365,
@@ -185,7 +186,8 @@ exports.DefaultConfiguration = {
         filter: undefined,
         transformer: undefined // transforms the tag name using the regex, run after the filter
     },
-    base_branches: [] // target branches for the merged PR ignoring PRs with different target branch, by default it will get all PRs
+    base_branches: [],
+    submodule_paths: [] // paths in which to look for submodules
 };
 
 
@@ -359,6 +361,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const path = __importStar(__nccwpck_require__(1017));
 const utils_1 = __nccwpck_require__(918);
 const releaseNotesBuilder_1 = __nccwpck_require__(4883);
 const rest_1 = __nccwpck_require__(5375);
@@ -394,17 +397,20 @@ function run() {
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
             const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
-            // FIXME: Compile a log for each of these and append it.
-            const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, ['org.lflang/src/lib/c/reactor-c']);
-            let found = result;
-            for (const submodule of submodules) {
-                found = `
-      Path: ${submodule.path}
-      BaseRef: ${submodule.baseRef}
-      HeadRef: ${submodule.headRef}
-      URL: ${submodule.url}`;
+            const submodule_paths = configuration.submodule_paths;
+            const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
+            configuration.submodule_paths = [];
+            let appendix = '';
+            if (submodules.length > 0) {
+                appendix += configuration.preamble;
             }
-            core.setOutput('changelog', found);
+            for (const submodule of submodules) {
+                // FIXME parameterize this
+                configuration.preamble = `## Submodule [${path.dirname(submodule.path)}](${submodule.url})
+      `;
+                appendix += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            }
+            core.setOutput('changelog', `${result}\n${appendix}`);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
             if (outputFile !== '') {
@@ -1022,6 +1028,29 @@ exports.ReleaseNotesBuilder = ReleaseNotesBuilder;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -1033,6 +1062,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Submodules = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(918);
 class Submodules {
     constructor(octokit, failOnError) {
@@ -1057,6 +1087,12 @@ class Submodules {
                         headRef: headRef.sha,
                         url: baseRef.submodule_git_url
                     });
+                    core.info(`⚙️ Submodule found! 
+            Path: ${path}
+            BaseRef: ${baseRef}
+            HeadRef: ${headRef}
+            URL: ${baseRef.submodule_git_url}
+        `);
                 }
                 else {
                     (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
