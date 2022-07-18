@@ -77,11 +77,15 @@ async function run(): Promise<void> {
     for (const submodule of submodules) {
       // FIXME parameterize this
       const submodule_name = `${path.dirname(submodule.path)}`
+      const submodule_octokit = new Octokit({
+        auth: `token ${token || process.env.GITHUB_TOKEN}`,
+        baseUrl: `${submodule.url || 'https://api.github.com'}`
+      })
       core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`)
       configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
       `
       appendix += await new ReleaseNotesBuilder(
-        octokit,
+        submodule_octokit,
         submodule.path,
         owner,
         submodule.url,

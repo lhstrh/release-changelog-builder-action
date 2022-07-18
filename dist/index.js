@@ -396,21 +396,29 @@ function run() {
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
-            const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
             configuration.submodule_paths = [];
             let appendix = '';
-            if (submodules.length > 0) {
-                appendix += configuration.preamble;
-            }
             for (const submodule of submodules) {
                 // FIXME parameterize this
-                configuration.preamble = `## Submodule [${path.dirname(submodule.path)}](${submodule.url})
+                const submodule_name = `${path.dirname(submodule.path)}`;
+                const submodule_octokit = new rest_1.Octokit({
+                    auth: `token ${token || process.env.GITHUB_TOKEN}`,
+                    baseUrl: `${submodule.url || 'https://api.github.com'}`
+                });
+                core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`);
+                configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
       `;
-                appendix += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                appendix += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(submodule_octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
             }
-            core.setOutput('changelog', `${result}\n${appendix}`);
+            if (submodules.length > 0) {
+                result = `${configuration.preamble}\n ${appendix}`;
+            }
+            core.setOutput('changelog', result);
+            // Debugging...
+            core.info(`$result`);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
             if (outputFile !== '') {
@@ -1087,11 +1095,11 @@ class Submodules {
                         headRef: headRef.sha,
                         url: baseRef.submodule_git_url
                     });
-                    core.info(`⚙️ Submodule found! 
-            Path: ${path}
-            BaseRef: ${baseRef}
-            HeadRef: ${headRef}
-            URL: ${baseRef.submodule_git_url}
+                    core.info(`ℹ️ Submodule found.
+          Path: ${path}
+          BaseRef: ${baseRef.sha}
+          HeadRef: ${headRef.sha}
+          URL: ${baseRef.submodule_git_url}
         `);
                 }
                 else {
