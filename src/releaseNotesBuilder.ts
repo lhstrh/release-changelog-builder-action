@@ -51,8 +51,8 @@ export class ReleaseNotesBuilder {
     ) {
       core.debug(`Given start and end tags are SHA-1 hashes.`)
       tagRange = {
-        from: {name: 'from', commit: this.fromTag},
-        to: {name: 'to', commit: this.toTag}
+        from: {name: this.fromTag, commit: this.fromTag},
+        to: {name: this.toTag, commit: this.toTag}
       }
     } else {
       // ensure proper from <-> to tag range
