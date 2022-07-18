@@ -411,10 +411,12 @@ function run() {
                 core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`);
                 configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
       `;
-                appendix += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(submodule_octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(submodule_octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                appendix += `${notes}\n`;
+                core.info(`${notes}`); // debugging
             }
             if (submodules.length > 0) {
-                result = `${configuration.preamble}\n ${appendix}`;
+                result = `${result}\n${configuration.preamble}\n ${appendix}`;
             }
             core.setOutput('changelog', result);
             // Debugging...
