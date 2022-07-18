@@ -47,7 +47,7 @@ async function run(): Promise<void> {
       baseUrl: `${baseUrl || 'https://api.github.com'}`
     })
 
-    const result = await new ReleaseNotesBuilder(
+    let result = await new ReleaseNotesBuilder(
       octokit,
       repositoryPath,
       owner,
@@ -74,15 +74,11 @@ async function run(): Promise<void> {
 
     let appendix = ''
 
-    if (submodules.length > 0) {
-      appendix += configuration.preamble
-    }
-
     for (const submodule of submodules) {
       // FIXME parameterize this
-      configuration.preamble = `## Submodule [${path.dirname(
-        submodule.path
-      )}](${submodule.url})
+      const submodule_name = `${path.dirname(submodule.path)}`
+      core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`)
+      configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
       `
       appendix += await new ReleaseNotesBuilder(
         octokit,
@@ -99,7 +95,15 @@ async function run(): Promise<void> {
         configuration
       ).build()
     }
-    core.setOutput('changelog', `${result}\n${appendix}`)
+
+    if (submodules.length > 0) {
+      result = `${configuration.preamble}\n ${appendix}`
+    }
+
+    core.setOutput('changelog', result)
+
+    // Debugging...
+    core.info(`$result`)
 
     // write the result in changelog to file if possible
     const outputFile: string = core.getInput('outputFile')

@@ -41,11 +41,11 @@ export class Submodules {
           url: baseRef.submodule_git_url
         })
 
-        core.info(`⚙️ Submodule found! 
-            Path: ${path}
-            BaseRef: ${baseRef}
-            HeadRef: ${headRef}
-            URL: ${baseRef.submodule_git_url}
+        core.info(`ℹ️ Submodule found.
+          Path: ${path}
+          BaseRef: ${baseRef.sha}
+          HeadRef: ${headRef.sha}
+          URL: ${baseRef.submodule_git_url}
         `)
       } else {
         failOrError(
