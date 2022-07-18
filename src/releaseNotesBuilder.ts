@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import {Configuration, DefaultConfiguration} from './configuration'
 import {Octokit} from '@octokit/rest'
 import {ReleaseNotes} from './releaseNotes'
-import {Tags} from './tags'
+import {TagResult, Tags} from './tags'
 import {failOrError} from './utils'
 import {fillAdditionalPlaceholders} from './transform'
 
@@ -39,23 +39,37 @@ export class ReleaseNotesBuilder {
       core.debug(`Resolved 'repo' as ${this.repo}`)
     }
     core.endGroup()
-
-    // ensure proper from <-> to tag range
     core.startGroup(`🔖 Resolve tags`)
-    const tagsApi = new Tags(this.octokit)
-    const tagRange = await tagsApi.retrieveRange(
-      this.repositoryPath,
-      this.owner,
-      this.repo,
-      this.fromTag,
-      this.toTag,
-      this.ignorePreReleases,
-      this.configuration.max_tags_to_fetch ||
-        DefaultConfiguration.max_tags_to_fetch,
-      this.configuration.tag_resolver || DefaultConfiguration.tag_resolver
-    )
-
-    const thisTag = tagRange.to?.name
+    const sha1 = /^[a-f0-9]{40}$/
+    let tagRange: TagResult
+    // check whether the tags need to be resolved or not
+    if (
+      this.fromTag &&
+      sha1.test(this.fromTag) &&
+      this.toTag &&
+      sha1.test(this.toTag)
+    ) {
+      core.debug(`Given start and end tags are SHA-1 hashes.`)
+      tagRange = {
+        from: {name: 'from', commit: this.fromTag},
+        to: {name: 'to', commit: this.toTag}
+      }
+    } else {
+      // ensure proper from <-> to tag range
+      const tagsApi = new Tags(this.octokit)
+      tagRange = await tagsApi.retrieveRange(
+        this.repositoryPath,
+        this.owner,
+        this.repo,
+        this.fromTag,
+        this.toTag,
+        this.ignorePreReleases,
+        this.configuration.max_tags_to_fetch ||
+          DefaultConfiguration.max_tags_to_fetch,
+        this.configuration.tag_resolver || DefaultConfiguration.tag_resolver
+      )
+    }
+    const thisTag = tagRange?.to?.name
     if (!thisTag) {
       failOrError(`💥 Missing or couldn't resolve 'toTag'`, this.failOnError)
       return null
@@ -76,6 +90,7 @@ export class ReleaseNotesBuilder {
     this.fromTag = previousTag
     core.setOutput('fromTag', previousTag)
     core.debug(`fromTag resolved via previousTag as: ${previousTag}`)
+
     core.endGroup()
 
     const options = {
