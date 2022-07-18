@@ -404,14 +404,14 @@ function run() {
             for (const submodule of submodules) {
                 // FIXME parameterize this
                 const submodule_name = `${path.dirname(submodule.path)}`;
-                const submodule_octokit = new rest_1.Octokit({
-                    auth: `token ${token || process.env.GITHUB_TOKEN}`,
-                    baseUrl: `${submodule.url || 'https://api.github.com'}`
-                });
+                //   const submodule_octokit = new Octokit({
+                //     auth: `token ${token || process.env.GITHUB_TOKEN}`,
+                //     baseUrl: `${submodule.url || 'https://api.github.com'}`
+                //   })
                 core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`);
                 configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
       `;
-                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(submodule_octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
                 appendix += `${notes}\n`;
                 core.info(`${notes}`); // debugging
             }
