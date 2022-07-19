@@ -1,5 +1,4 @@
 export interface Configuration {
-  preamble: string
   max_tags_to_fetch: number
   max_pull_requests: number
   max_back_track_time_days: number
@@ -16,6 +15,7 @@ export interface Configuration {
   tag_resolver: TagResolver
   base_branches: string[]
   submodule_paths: string[]
+  submodule_template: string
 }
 
 export interface Category {
@@ -59,7 +59,6 @@ export interface TagResolver {
 }
 
 export const DefaultConfiguration: Configuration = {
-  preamble: '', // string to prepend to changelog
   max_tags_to_fetch: 200, // the amount of tags to fetch from the github API
   max_pull_requests: 200, // the amount of pull requests to process
   max_back_track_time_days: 365, // allow max of 365 days back to check up on pull requests
@@ -97,5 +96,8 @@ export const DefaultConfiguration: Configuration = {
     transformer: undefined // transforms the tag name using the regex, run after the filter
   },
   base_branches: [], // target branches for the merged PR ignoring PRs with different target branch, by default it will get all PRs
-  submodule_paths: [] // paths in which to look for submodules
+  submodule_paths: [], // paths in which to look for submodules
+  // template for submodule sections
+  submodule_template:
+    '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})'
 }

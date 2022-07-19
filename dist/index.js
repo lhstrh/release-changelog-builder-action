@@ -149,7 +149,6 @@ exports.filterCommits = filterCommits;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DefaultConfiguration = void 0;
 exports.DefaultConfiguration = {
-    preamble: '',
     max_tags_to_fetch: 200,
     max_pull_requests: 200,
     max_back_track_time_days: 365,
@@ -187,7 +186,9 @@ exports.DefaultConfiguration = {
         transformer: undefined // transforms the tag name using the regex, run after the filter
     },
     base_branches: [],
-    submodule_paths: [] // paths in which to look for submodules
+    submodule_paths: [],
+    // template for submodule sections
+    submodule_template: '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})'
 };
 
 
@@ -401,9 +402,7 @@ function run() {
             configuration.submodule_paths = [];
             let appendix = '';
             for (const submodule of submodules) {
-                // FIXME: make the formatting configurable.
-                configuration.preamble = `### Submodule [${submodule.owner}/${submodule.repo}](http://github.com/${submodule.owner}/${submodule.repo})
-      `;
+                configuration.template = configuration.submodule_template;
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
                 appendix += `${notes}\n`;
                 core.info(`${notes}`); // debugging
@@ -1689,7 +1688,9 @@ function buildChangelog(prs, options) {
 }
 exports.buildChangelog = buildChangelog;
 function fillAdditionalPlaceholders(text, options) {
-    let transformed = `${options.configuration.preamble}\n${text}`;
+    const now = new Date();
+    let transformed = text;
+    transformed = transformed.replace(/\${{DATE}}/g, `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);
     transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag);

@@ -74,9 +74,7 @@ async function run(): Promise<void> {
     let appendix = ''
 
     for (const submodule of submodules) {
-      // FIXME: make the formatting configurable.
-      configuration.preamble = `### Submodule [${submodule.owner}/${submodule.repo}](http://github.com/${submodule.owner}/${submodule.repo})
-      `
+      configuration.template = configuration.submodule_template
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
