@@ -945,7 +945,7 @@ const tags_1 = __nccwpck_require__(7532);
 const utils_1 = __nccwpck_require__(918);
 const transform_1 = __nccwpck_require__(1644);
 class ReleaseNotesBuilder {
-    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration, summary) {
+    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration, text) {
         this.octokit = octokit;
         this.repositoryPath = repositoryPath;
         this.owner = owner;
@@ -958,7 +958,7 @@ class ReleaseNotesBuilder {
         this.fetchReviewers = fetchReviewers;
         this.commitMode = commitMode;
         this.configuration = configuration;
-        this.summary = summary;
+        this.text = text;
     }
     build() {
         var _a, _b;
@@ -1029,7 +1029,7 @@ class ReleaseNotesBuilder {
                 fetchReviewers: this.fetchReviewers,
                 commitMode: this.commitMode,
                 configuration: this.configuration,
-                summary: this.summary
+                text: this.text
             };
             const releaseNotes = new releaseNotes_1.ReleaseNotes(this.octokit, options);
             return ((yield releaseNotes.pull()) ||
@@ -1694,7 +1694,7 @@ function fillAdditionalPlaceholders(text, options) {
     const now = new Date();
     let transformed = text;
     transformed = transformed.replace(/\${{DATE}}/g, `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
-    transformed = transformed.replace(/\${{SUMMARY}}/g, options.summary);
+    transformed = transformed.replace(/\${{TEXT}}/g, options.text);
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);
     transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag);

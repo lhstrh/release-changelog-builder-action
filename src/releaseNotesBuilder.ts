@@ -20,7 +20,7 @@ export class ReleaseNotesBuilder {
     private fetchReviewers: boolean = false,
     private commitMode: boolean,
     private configuration: Configuration,
-    private summary: string
+    private text: string
   ) {}
 
   async build(): Promise<string | null> {
@@ -104,7 +104,7 @@ export class ReleaseNotesBuilder {
       fetchReviewers: this.fetchReviewers,
       commitMode: this.commitMode,
       configuration: this.configuration,
-      summary: this.summary
+      text: this.text
     }
     const releaseNotes = new ReleaseNotes(this.octokit, options)
 
