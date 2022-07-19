@@ -1,6 +1,5 @@
 import * as exec from '@actions/exec'
 import * as io from '@actions/io'
-import {TagInfo} from './tags'
 import {directoryExistsSync} from './utils'
 
 export async function createCommandManager(
@@ -36,15 +35,10 @@ class GitCommandManager {
     return output.stdout.trim()
   }
 
-  async latestCommit(): Promise<TagInfo> {
+  async latestCommit(): Promise<string> {
     const outputMatcher = /(?<hash>[a-f0-9]{40} (?<name>.+))/
     const showRefOutput = await this.execGit(['show-ref', '--heads'])
-    const matches = showRefOutput.stdout.match(outputMatcher)
-    const tagInfo = {
-      name: matches?.groups?.hash || '',
-      commit: matches?.groups?.name || ''
-    }
-    return tagInfo
+    return showRefOutput.stdout.match(outputMatcher)?.groups?.hash || ''
   }
 
   async initialCommit(): Promise<string> {
