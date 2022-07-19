@@ -405,6 +405,7 @@ function run() {
             let appendix = '';
             for (const submodule of submodules) {
                 configuration.template = configuration.submodule_template;
+                configuration.empty_template = `${configuration.submodule_template}No changes.`; // FIXME: make this configurable.
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
                 appendix += `${notes}\n`;
             }
