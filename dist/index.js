@@ -361,7 +361,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const path = __importStar(__nccwpck_require__(1017));
 const utils_1 = __nccwpck_require__(918);
 const releaseNotesBuilder_1 = __nccwpck_require__(4883);
 const rest_1 = __nccwpck_require__(5375);
@@ -396,27 +395,21 @@ function run() {
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
-            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            let result = `${configuration.preamble}\n`;
+            result += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
             configuration.submodule_paths = [];
             let appendix = '';
             for (const submodule of submodules) {
-                // FIXME parameterize this
-                const submodule_name = `${path.dirname(submodule.path)}`;
-                //   const submodule_octokit = new Octokit({
-                //     auth: `token ${token || process.env.GITHUB_TOKEN}`,
-                //     baseUrl: `${submodule.url || 'https://api.github.com'}`
-                //   })
-                core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`);
-                configuration.preamble = `### Submodule [${submodule_name}](http://github.com/${submodule.owner}/${submodule.repo})
+                configuration.preamble = `### Submodule [${submodule.owner}/${submodule.repo}](http://github.com/${submodule.owner}/${submodule.repo})
       `;
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
                 appendix += `${notes}\n`;
                 core.info(`${notes}`); // debugging
             }
             if (submodules.length > 0) {
-                result = `${result}\n${configuration.preamble}\n ${appendix}`;
+                result = `${result}\n${appendix}`;
             }
             core.setOutput('changelog', result);
             // Debugging...
