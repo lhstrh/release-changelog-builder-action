@@ -33,7 +33,7 @@ export class Submodules {
       } catch (error) {
         baseRef = headRef
         core.warning(
-          `Unable to find base ref. Perhaps the submodule '${repo}' was newly added?`
+          `Unable to find base ref. Perhaps the submodule '${path}' was newly added?`
         )
       }
       if (
