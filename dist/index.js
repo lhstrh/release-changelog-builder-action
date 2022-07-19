@@ -391,19 +391,21 @@ function run() {
             const failOnError = core.getInput('failOnError') === 'true';
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
+            // read in summary
+            const summary = core.getInput('summary');
             // load octokit instance
             const octokit = new rest_1.Octokit({
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
-            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, summary).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
             configuration.submodule_paths = [];
             let appendix = '';
             for (const submodule of submodules) {
                 configuration.template = configuration.submodule_template;
-                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, summary).build();
                 appendix += `${notes}\n`;
                 core.info(`${notes}`); // debugging
             }
@@ -944,7 +946,7 @@ const tags_1 = __nccwpck_require__(7532);
 const utils_1 = __nccwpck_require__(918);
 const transform_1 = __nccwpck_require__(1644);
 class ReleaseNotesBuilder {
-    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration) {
+    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration, summary) {
         this.octokit = octokit;
         this.repositoryPath = repositoryPath;
         this.owner = owner;
@@ -957,6 +959,7 @@ class ReleaseNotesBuilder {
         this.fetchReviewers = fetchReviewers;
         this.commitMode = commitMode;
         this.configuration = configuration;
+        this.summary = summary;
     }
     build() {
         var _a, _b;
@@ -1026,7 +1029,8 @@ class ReleaseNotesBuilder {
                 failOnError: this.failOnError,
                 fetchReviewers: this.fetchReviewers,
                 commitMode: this.commitMode,
-                configuration: this.configuration
+                configuration: this.configuration,
+                summary: this.summary
             };
             const releaseNotes = new releaseNotes_1.ReleaseNotes(this.octokit, options);
             return ((yield releaseNotes.pull()) ||
@@ -1691,6 +1695,7 @@ function fillAdditionalPlaceholders(text, options) {
     const now = new Date();
     let transformed = text;
     transformed = transformed.replace(/\${{DATE}}/g, `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
+    transformed = transformed.replace(/\${{SUMMARY}}/g, options.summary);
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);
     transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag);
