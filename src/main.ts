@@ -72,13 +72,12 @@ async function run(): Promise<void> {
       toTag,
       submodule_paths
     )
-    //configuration.submodule_paths = []
 
     let appendix = ''
+    configuration.template = configuration.submodule_template
+    configuration.empty_template = configuration.submodule_empty_template
 
     for (const submodule of submodules) {
-      configuration.template = configuration.submodule_template
-      configuration.empty_template = configuration.submodule_empty_template
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
