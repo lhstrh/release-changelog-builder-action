@@ -78,6 +78,7 @@ async function run(): Promise<void> {
     configuration.empty_template = configuration.submodule_empty_template
 
     for (const submodule of submodules) {
+      core.startGroup(`📘 Indexing submodule '${submodule.repo}'`)
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
@@ -94,6 +95,7 @@ async function run(): Promise<void> {
         text
       ).build()
       appendix += `${notes}\n`
+      core.endGroup()
     }
 
     if (submodules.length > 0) {

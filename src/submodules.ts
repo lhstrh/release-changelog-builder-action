@@ -29,6 +29,7 @@ export class Submodules {
     paths: string[]
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
+    core.startGroup(`📘 Detecting submodules`)
     for (const path of paths) {
       const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
       let baseRef
@@ -57,14 +58,12 @@ export class Submodules {
             owner: repoInfo.owner,
             repo: repoInfo.repo
           })
-          core.info(`ℹ️ Submodule found.
-            url: ${baseRef.submodule_git_url}
-            path: ${path}
-            base: ${baseRef.sha}
-            head: ${headRef.sha}
-            repo: ${repoInfo.repo}
-            owner: ${repoInfo.owner}
-          `)
+          core.info(`ℹ️ Submodule found: ${baseRef.submodule_git_url}
+          repo: ${repoInfo.repo}
+          owner: ${repoInfo.owner}
+          path: ${path}
+          base: ${baseRef.sha}
+          head: ${headRef.sha}`)
         } else {
           failOrError(
             `💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`,
@@ -78,6 +77,7 @@ export class Submodules {
         )
       }
     }
+    core.endGroup()
     return modsInfo
   }
 

@@ -414,8 +414,10 @@ function run() {
             configuration.template = configuration.submodule_template;
             configuration.empty_template = configuration.submodule_empty_template;
             for (const submodule of submodules) {
+                core.startGroup(`📘 Indexing submodule '${submodule.repo}'`);
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
                 appendix += `${notes}\n`;
+                core.endGroup();
             }
             if (submodules.length > 0) {
                 result = `${result}\n${appendix}`;
@@ -1101,6 +1103,7 @@ class Submodules {
     getSubmodules(owner, repo, fromTag, toTag, paths) {
         return __awaiter(this, void 0, void 0, function* () {
             const modsInfo = [];
+            core.startGroup(`📘 Detecting submodules`);
             for (const path of paths) {
                 const headRef = (yield this.fetchRef(owner, repo, path, toTag)).data;
                 let baseRef;
@@ -1126,14 +1129,12 @@ class Submodules {
                             owner: repoInfo.owner,
                             repo: repoInfo.repo
                         });
-                        core.info(`ℹ️ Submodule found.
-            url: ${baseRef.submodule_git_url}
-            path: ${path}
-            base: ${baseRef.sha}
-            head: ${headRef.sha}
-            repo: ${repoInfo.repo}
-            owner: ${repoInfo.owner}
-          `);
+                        core.info(`ℹ️ Submodule found: ${baseRef.submodule_git_url}
+          repo: ${repoInfo.repo}
+          owner: ${repoInfo.owner}
+          path: ${path}
+          base: ${baseRef.sha}
+          head: ${headRef.sha}`);
                     }
                     else {
                         (0, utils_1.failOrError)(`💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`, this.failOnError);
@@ -1143,6 +1144,7 @@ class Submodules {
                     (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
                 }
             }
+            core.endGroup();
             return modsInfo;
         });
     }
