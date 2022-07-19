@@ -1093,8 +1093,15 @@ class Submodules {
         return __awaiter(this, void 0, void 0, function* () {
             const modsInfo = [];
             for (const path of paths) {
-                const baseRef = (yield this.fetchRef(owner, repo, path, fromTag)).data;
                 const headRef = (yield this.fetchRef(owner, repo, path, toTag)).data;
+                let baseRef;
+                try {
+                    baseRef = (yield this.fetchRef(owner, repo, path, fromTag)).data;
+                }
+                catch (error) {
+                    baseRef = headRef;
+                    core.warning(`Unable to find base ref. Perhaps the submodule '${repo}' was newly added?`);
+                }
                 if (!Array.isArray(baseRef) &&
                     !Array.isArray(headRef) &&
                     'submodule_git_url' in baseRef &&

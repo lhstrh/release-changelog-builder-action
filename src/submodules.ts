@@ -26,8 +26,16 @@ export class Submodules {
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
     for (const path of paths) {
-      const baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
       const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
+      let baseRef
+      try {
+        baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
+      } catch (error) {
+        baseRef = headRef
+        core.warning(
+          `Unable to find base ref. Perhaps the submodule '${repo}' was newly added?`
+        )
+      }
       if (
         !Array.isArray(baseRef) &&
         !Array.isArray(headRef) &&
