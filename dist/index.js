@@ -1141,7 +1141,7 @@ class Submodules {
     }
 }
 exports.Submodules = Submodules;
-Submodules.gitHubRepo = /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+).git$/;
+Submodules.gitHubRepo = /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+)(?:.git)?$/;
 
 
 /***/ }),

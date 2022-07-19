@@ -15,7 +15,7 @@ export interface SubmoduleInfo {
 export class Submodules {
   constructor(private octokit: Octokit, private failOnError: boolean) {}
   private static readonly gitHubRepo =
-    /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+).git$/
+    /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+)(?:.git)?$/
 
   async getSubmodules(
     owner: string,
