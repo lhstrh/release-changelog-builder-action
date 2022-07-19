@@ -46,8 +46,7 @@ async function run(): Promise<void> {
       baseUrl: `${baseUrl || 'https://api.github.com'}`
     })
 
-    let result = `${configuration.preamble}\n`
-    result += await new ReleaseNotesBuilder(
+    let result = await new ReleaseNotesBuilder(
       octokit,
       repositoryPath,
       owner,
@@ -75,6 +74,7 @@ async function run(): Promise<void> {
     let appendix = ''
 
     for (const submodule of submodules) {
+      // FIXME: make the formatting configurable.
       configuration.preamble = `### Submodule [${submodule.owner}/${submodule.repo}](http://github.com/${submodule.owner}/${submodule.repo})
       `
       const notes = await new ReleaseNotesBuilder(

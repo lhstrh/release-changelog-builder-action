@@ -285,7 +285,7 @@ export function fillAdditionalPlaceholders(
   text: string,
   options: ReleaseNotesOptions
 ): string {
-  let transformed = text
+  let transformed = `${options.configuration.preamble}\n${text}`
   transformed = transformed.replace(/\${{OWNER}}/g, options.owner)
   transformed = transformed.replace(/\${{REPO}}/g, options.repo)
   transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag)

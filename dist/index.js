@@ -395,13 +395,13 @@ function run() {
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
-            let result = `${configuration.preamble}\n`;
-            result += yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
             configuration.submodule_paths = [];
             let appendix = '';
             for (const submodule of submodules) {
+                // FIXME: make the formatting configurable.
                 configuration.preamble = `### Submodule [${submodule.owner}/${submodule.repo}](http://github.com/${submodule.owner}/${submodule.repo})
       `;
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
@@ -987,7 +987,7 @@ class ReleaseNotesBuilder {
                 sha1.test(this.fromTag) &&
                 this.toTag &&
                 sha1.test(this.toTag)) {
-                core.debug(`Given start and end tags are SHA-1 hashes.`);
+                core.info(`Given start and end tags are plain SHA-1 hashes.`);
                 tagRange = {
                     from: { name: this.fromTag, commit: this.fromTag },
                     to: { name: this.toTag, commit: this.toTag }
@@ -1007,7 +1007,7 @@ class ReleaseNotesBuilder {
             else {
                 this.toTag = thisTag;
                 core.setOutput('toTag', thisTag);
-                core.debug(`Resolved 'toTag' as ${thisTag}`);
+                core.info(`Resolved 'toTag' as ${thisTag}`);
             }
             const previousTag = (_b = tagRange.from) === null || _b === void 0 ? void 0 : _b.name;
             if (previousTag == null) {
@@ -1016,7 +1016,7 @@ class ReleaseNotesBuilder {
             }
             this.fromTag = previousTag;
             core.setOutput('fromTag', previousTag);
-            core.debug(`fromTag resolved via previousTag as: ${previousTag}`);
+            core.info(`fromTag resolved via previousTag as: ${previousTag}`);
             core.endGroup();
             const options = {
                 owner: this.owner,
@@ -1689,7 +1689,7 @@ function buildChangelog(prs, options) {
 }
 exports.buildChangelog = buildChangelog;
 function fillAdditionalPlaceholders(text, options) {
-    let transformed = text;
+    let transformed = `${options.configuration.preamble}\n${text}`;
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);
     transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag);

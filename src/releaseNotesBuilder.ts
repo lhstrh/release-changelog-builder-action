@@ -49,7 +49,7 @@ export class ReleaseNotesBuilder {
       this.toTag &&
       sha1.test(this.toTag)
     ) {
-      core.debug(`Given start and end tags are SHA-1 hashes.`)
+      core.info(`Given start and end tags are plain SHA-1 hashes.`)
       tagRange = {
         from: {name: this.fromTag, commit: this.fromTag},
         to: {name: this.toTag, commit: this.toTag}
@@ -76,7 +76,7 @@ export class ReleaseNotesBuilder {
     } else {
       this.toTag = thisTag
       core.setOutput('toTag', thisTag)
-      core.debug(`Resolved 'toTag' as ${thisTag}`)
+      core.info(`Resolved 'toTag' as ${thisTag}`)
     }
 
     const previousTag = tagRange.from?.name
@@ -89,7 +89,7 @@ export class ReleaseNotesBuilder {
     }
     this.fromTag = previousTag
     core.setOutput('fromTag', previousTag)
-    core.debug(`fromTag resolved via previousTag as: ${previousTag}`)
+    core.info(`fromTag resolved via previousTag as: ${previousTag}`)
 
     core.endGroup()
 
