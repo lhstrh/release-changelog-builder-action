@@ -99,5 +99,5 @@ export const DefaultConfiguration: Configuration = {
   submodule_paths: [], // paths in which to look for submodules
   // template for submodule sections
   submodule_template:
-    '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}'
+    '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Uncategorized**\n${{UNCATEGORIZED}}\n'
 }
