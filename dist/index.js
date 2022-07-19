@@ -272,7 +272,7 @@ class GitCommandManager {
     latestCommit() {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            const outputMatcher = /(?<hash>[a-f0-9]{40} (?<name>.+))/;
+            const outputMatcher = /(?<hash>[a-f0-9]{40}) (?<name>.+)/;
             const showRefOutput = yield this.execGit(['show-ref', '--heads']);
             return ((_b = (_a = showRefOutput.stdout.match(outputMatcher)) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.hash) || '';
         });

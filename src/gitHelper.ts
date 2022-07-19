@@ -36,7 +36,7 @@ class GitCommandManager {
   }
 
   async latestCommit(): Promise<string> {
-    const outputMatcher = /(?<hash>[a-f0-9]{40} (?<name>.+))/
+    const outputMatcher = /(?<hash>[a-f0-9]{40}) (?<name>.+)/
     const showRefOutput = await this.execGit(['show-ref', '--heads'])
     return showRefOutput.stdout.match(outputMatcher)?.groups?.hash || ''
   }
