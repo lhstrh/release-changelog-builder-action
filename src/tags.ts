@@ -186,8 +186,7 @@ export class Tags {
       // Look up ref in case 'head' was specified.
       if (toTag?.toLowerCase() === 'head') {
         const gitHelper = await createCommandManager(repositoryPath)
-        const latestCommit = await gitHelper.latestCommit()
-        resultToTag = {name: latestCommit, commit: latestCommit}
+        resultToTag = await gitHelper.latestCommit()
       } else {
         resultToTag = {
           name: toTag,

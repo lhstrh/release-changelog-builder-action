@@ -270,9 +270,16 @@ class GitCommandManager {
         });
     }
     latestCommit() {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            const outputMatcher = /(?<hash>[a-f0-9]{40} (?<name>.+))/;
             const showRefOutput = yield this.execGit(['show-ref', '--heads']);
-            return showRefOutput.stdout.trim();
+            const matches = showRefOutput.stdout.match(outputMatcher);
+            const tagInfo = {
+                name: ((_a = matches === null || matches === void 0 ? void 0 : matches.groups) === null || _a === void 0 ? void 0 : _a.hash) || '',
+                commit: ((_b = matches === null || matches === void 0 ? void 0 : matches.groups) === null || _b === void 0 ? void 0 : _b.name) || ''
+            };
+            return tagInfo;
         });
     }
     initialCommit() {
@@ -1364,8 +1371,7 @@ class Tags {
                 // Look up ref in case 'head' was specified.
                 if ((toTag === null || toTag === void 0 ? void 0 : toTag.toLowerCase()) === 'head') {
                     const gitHelper = yield (0, gitHelper_1.createCommandManager)(repositoryPath);
-                    const latestCommit = yield gitHelper.latestCommit();
-                    resultToTag = { name: latestCommit, commit: latestCommit };
+                    resultToTag = yield gitHelper.latestCommit();
                 }
                 else {
                     resultToTag = {
