@@ -291,6 +291,7 @@ export function fillAdditionalPlaceholders(
     /\${{DATE}}/g,
     `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
   )
+  transformed = transformed.replace(/\${{SUMMARY}}/g, options.summary)
   transformed = transformed.replace(/\${{OWNER}}/g, options.owner)
   transformed = transformed.replace(/\${{REPO}}/g, options.repo)
   transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag)

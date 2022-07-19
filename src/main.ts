@@ -39,6 +39,8 @@ async function run(): Promise<void> {
     const failOnError = core.getInput('failOnError') === 'true'
     const fetchReviewers = core.getInput('fetchReviewers') === 'true'
     const commitMode = core.getInput('commitMode') === 'true'
+    // read in summary
+    const summary = core.getInput('summary')
 
     // load octokit instance
     const octokit = new Octokit({
@@ -58,7 +60,8 @@ async function run(): Promise<void> {
       ignorePreReleases,
       fetchReviewers,
       commitMode,
-      configuration
+      configuration,
+      summary
     ).build()
 
     const submodule_paths = configuration.submodule_paths
@@ -87,7 +90,8 @@ async function run(): Promise<void> {
         ignorePreReleases,
         fetchReviewers,
         commitMode,
-        configuration
+        configuration,
+        summary
       ).build()
       appendix += `${notes}\n`
       core.info(`${notes}`) // debugging

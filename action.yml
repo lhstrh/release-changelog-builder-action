@@ -38,6 +38,8 @@ inputs:
     description: 'Defines the token to use to execute the git API requests with, uses `env.GITHUB_TOKEN` by default'
   baseUrl:
     description: 'Defines the base url for GitHub Enterprise authentication, uses `https://api.github.com` by default'
+  summary:
+    description: 'Text that can be referred to with the ${{SUMMARY}} substitution variable in templates'
 outputs:
   changelog:
     description: The built release changelog built from the merged pull requests
