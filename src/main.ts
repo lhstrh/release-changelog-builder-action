@@ -39,7 +39,7 @@ async function run(): Promise<void> {
     const failOnError = core.getInput('failOnError') === 'true'
     const fetchReviewers = core.getInput('fetchReviewers') === 'true'
     const commitMode = core.getInput('commitMode') === 'true'
-    // read in summary
+    // read in the optional text
     const text = core.getInput('text') || ''
 
     // load octokit instance
@@ -72,7 +72,7 @@ async function run(): Promise<void> {
       toTag,
       submodule_paths
     )
-    configuration.submodule_paths = []
+    //configuration.submodule_paths = []
 
     let appendix = ''
 

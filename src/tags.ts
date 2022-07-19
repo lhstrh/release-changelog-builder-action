@@ -119,6 +119,9 @@ export class Tags {
     maxTagsToFetch: number,
     tagResolver: TagResolver
   ): Promise<TagResult> {
+    let resultToTag: TagInfo | null
+    let resultFromTag: TagInfo | null
+
     // filter out tags not matching the specified filter
     const filteredTags = filterTags(
       // retrieve the tags from the API
@@ -150,9 +153,6 @@ export class Tags {
       })
     }
 
-    let resultToTag: TagInfo | null
-    let resultFromTag: TagInfo | null
-
     // ensure to resolve the toTag if it was not provided
     if (!toTag) {
       // if not specified try to retrieve tag from github.context.ref
@@ -183,9 +183,16 @@ export class Tags {
         }
       }
     } else {
-      resultToTag = {
-        name: toTag,
-        commit: toTag
+      // Look up ref in case 'head' was specified.
+      if (toTag?.toLowerCase() === 'head') {
+        const gitHelper = await createCommandManager(repositoryPath)
+        const latestCommit = await gitHelper.latestCommit()
+        resultToTag = {name: latestCommit, commit: latestCommit}
+      } else {
+        resultToTag = {
+          name: toTag,
+          commit: toTag
+        }
       }
     }
 

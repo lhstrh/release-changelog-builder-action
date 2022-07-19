@@ -35,6 +35,11 @@ class GitCommandManager {
     return output.stdout.trim()
   }
 
+  async latestCommit(): Promise<string> {
+    const showRefOutput = await this.execGit(['show-ref', '--heads'])
+    return showRefOutput.stdout.trim()
+  }
+
   async initialCommit(): Promise<string> {
     const revListOutput = await this.execGit([
       'rev-list',

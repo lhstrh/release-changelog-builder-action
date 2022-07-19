@@ -269,6 +269,12 @@ class GitCommandManager {
             return output.stdout.trim();
         });
     }
+    latestCommit() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const showRefOutput = yield this.execGit(['show-ref', '--heads']);
+            return showRefOutput.stdout.trim();
+        });
+    }
     initialCommit() {
         return __awaiter(this, void 0, void 0, function* () {
             const revListOutput = yield this.execGit([
@@ -392,7 +398,7 @@ function run() {
             const failOnError = core.getInput('failOnError') === 'true';
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
-            // read in summary
+            // read in the optional text
             const text = core.getInput('text') || '';
             // load octokit instance
             const octokit = new rest_1.Octokit({
@@ -402,7 +408,7 @@ function run() {
             let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
-            configuration.submodule_paths = [];
+            //configuration.submodule_paths = []
             let appendix = '';
             for (const submodule of submodules) {
                 configuration.template = configuration.submodule_template;
@@ -1300,6 +1306,8 @@ class Tags {
     retrieveRange(repositoryPath, owner, repo, fromTag, toTag, ignorePreReleases, maxTagsToFetch, tagResolver) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            let resultToTag;
+            let resultFromTag;
             // filter out tags not matching the specified filter
             const filteredTags = filterTags(
             // retrieve the tags from the API
@@ -1326,8 +1334,6 @@ class Tags {
                     }
                 });
             }
-            let resultToTag;
-            let resultFromTag;
             // ensure to resolve the toTag if it was not provided
             if (!toTag) {
                 // if not specified try to retrieve tag from github.context.ref
@@ -1355,10 +1361,18 @@ class Tags {
                 }
             }
             else {
-                resultToTag = {
-                    name: toTag,
-                    commit: toTag
-                };
+                // Look up ref in case 'head' was specified.
+                if ((toTag === null || toTag === void 0 ? void 0 : toTag.toLowerCase()) === 'head') {
+                    const gitHelper = yield (0, gitHelper_1.createCommandManager)(repositoryPath);
+                    const latestCommit = yield gitHelper.latestCommit();
+                    resultToTag = { name: latestCommit, commit: latestCommit };
+                }
+                else {
+                    resultToTag = {
+                        name: toTag,
+                        commit: toTag
+                    };
+                }
             }
             // ensure toTag is specified
             toTag = resultToTag.name;
