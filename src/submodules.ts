@@ -46,19 +46,22 @@ export class Submodules {
       ) {
         const match = headRef.submodule_git_url.match(Submodules.gitHubRepo)
         if (match && match.groups) {
-          modsInfo.push({
+          let info = {
             path,
             baseRef: baseRef.sha,
             headRef: headRef.sha,
             owner: match.groups.owner,
             repo: match.groups.repo
-          })
+          }
+          modsInfo.push(info)
           core.info(`ℹ️ Submodule found.
-                Path: ${path}
-                BaseRef: ${baseRef.sha}
-                HeadRef: ${headRef.sha}
-                URL: ${baseRef.submodule_git_url}
-              `)
+            url: ${baseRef.submodule_git_url}
+            path: ${info.path}
+            base: ${info.baseRef}
+            head: ${info.headRef}
+            repo: ${info.repo}
+            owner: ${info.repo}
+          `)
         } else {
           failOrError(
             `💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`,

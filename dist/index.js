@@ -1100,7 +1100,7 @@ class Submodules {
                 }
                 catch (error) {
                     baseRef = headRef;
-                    core.warning(`Unable to find base ref. Perhaps the submodule '${repo}' was newly added?`);
+                    core.warning(`Unable to find base ref. Perhaps the submodule '${path}' was newly added?`);
                 }
                 if (!Array.isArray(baseRef) &&
                     !Array.isArray(headRef) &&
@@ -1110,19 +1110,22 @@ class Submodules {
                     baseRef.submodule_git_url === headRef.submodule_git_url) {
                     const match = headRef.submodule_git_url.match(Submodules.gitHubRepo);
                     if (match && match.groups) {
-                        modsInfo.push({
+                        let info = {
                             path,
                             baseRef: baseRef.sha,
                             headRef: headRef.sha,
                             owner: match.groups.owner,
                             repo: match.groups.repo
-                        });
+                        };
+                        modsInfo.push(info);
                         core.info(`ℹ️ Submodule found.
-                Path: ${path}
-                BaseRef: ${baseRef.sha}
-                HeadRef: ${headRef.sha}
-                URL: ${baseRef.submodule_git_url}
-              `);
+            url: ${baseRef.submodule_git_url}
+            path: ${info.path}
+            base: ${info.baseRef}
+            head: ${info.headRef}
+            repo: ${info.repo}
+            owner: ${info.repo}
+          `);
                     }
                     else {
                         (0, utils_1.failOrError)(`💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`, this.failOnError);
