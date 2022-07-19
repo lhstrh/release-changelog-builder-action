@@ -40,7 +40,7 @@ async function run(): Promise<void> {
     const fetchReviewers = core.getInput('fetchReviewers') === 'true'
     const commitMode = core.getInput('commitMode') === 'true'
     // read in summary
-    const summary = core.getInput('summary')
+    const summary = core.getInput('summary') || ''
 
     // load octokit instance
     const octokit = new Octokit({
@@ -94,7 +94,6 @@ async function run(): Promise<void> {
         summary
       ).build()
       appendix += `${notes}\n`
-      core.info(`${notes}`) // debugging
     }
 
     if (submodules.length > 0) {
@@ -104,7 +103,7 @@ async function run(): Promise<void> {
     core.setOutput('changelog', result)
 
     // Debugging...
-    core.info(`$result`)
+    core.info(`${result}`)
 
     // write the result in changelog to file if possible
     const outputFile: string = core.getInput('outputFile')

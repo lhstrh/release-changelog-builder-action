@@ -188,7 +188,7 @@ exports.DefaultConfiguration = {
     base_branches: [],
     submodule_paths: [],
     // template for submodule sections
-    submodule_template: '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})'
+    submodule_template: '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}'
 };
 
 
@@ -392,7 +392,7 @@ function run() {
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
             // read in summary
-            const summary = core.getInput('summary');
+            const summary = core.getInput('summary') || '';
             // load octokit instance
             const octokit = new rest_1.Octokit({
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
@@ -407,14 +407,13 @@ function run() {
                 configuration.template = configuration.submodule_template;
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, summary).build();
                 appendix += `${notes}\n`;
-                core.info(`${notes}`); // debugging
             }
             if (submodules.length > 0) {
                 result = `${result}\n${appendix}`;
             }
             core.setOutput('changelog', result);
             // Debugging...
-            core.info(`$result`);
+            core.info(`${result}`);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
             if (outputFile !== '') {
