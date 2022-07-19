@@ -409,9 +409,9 @@ function run() {
                 //     baseUrl: `${submodule.url || 'https://api.github.com'}`
                 //   })
                 core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`);
-                configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
+                configuration.preamble = `### Submodule [${submodule_name}](http://github.com/${submodule.owner}/${submodule.repo})
       `;
-                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, owner, submodule.url, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
                 appendix += `${notes}\n`;
                 core.info(`${notes}`); // debugging
             }
@@ -1106,18 +1106,25 @@ class Submodules {
                     'submodule_git_url' in headRef &&
                     baseRef.submodule_git_url !== undefined &&
                     baseRef.submodule_git_url === headRef.submodule_git_url) {
-                    modsInfo.push({
-                        path,
-                        baseRef: baseRef.sha,
-                        headRef: headRef.sha,
-                        url: baseRef.submodule_git_url
-                    });
-                    core.info(`ℹ️ Submodule found.
-          Path: ${path}
-          BaseRef: ${baseRef.sha}
-          HeadRef: ${headRef.sha}
-          URL: ${baseRef.submodule_git_url}
-        `);
+                    const match = headRef.submodule_git_url.match(Submodules.gitHubRepo);
+                    if (match && match.groups) {
+                        modsInfo.push({
+                            path,
+                            baseRef: baseRef.sha,
+                            headRef: headRef.sha,
+                            owner: match.groups.owner,
+                            repo: match.groups.repo
+                        });
+                        core.info(`ℹ️ Submodule found.
+                Path: ${path}
+                BaseRef: ${baseRef.sha}
+                HeadRef: ${headRef.sha}
+                URL: ${baseRef.submodule_git_url}
+              `);
+                    }
+                    else {
+                        (0, utils_1.failOrError)(`💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`, this.failOnError);
+                    }
                 }
                 else {
                     (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
@@ -1139,6 +1146,7 @@ class Submodules {
     }
 }
 exports.Submodules = Submodules;
+Submodules.gitHubRepo = /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+).git$/;
 
 
 /***/ }),

@@ -82,13 +82,13 @@ async function run(): Promise<void> {
     //     baseUrl: `${submodule.url || 'https://api.github.com'}`
     //   })
       core.info(`ℹ️ Generating release notes for submodule: ${submodule_name}`)
-      configuration.preamble = `### Submodule [${submodule_name}](${submodule.url})
+      configuration.preamble = `### Submodule [${submodule_name}](http://github.com/${submodule.owner}/${submodule.repo})
       `
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
-        owner,
-        submodule.url,
+        submodule.owner,
+        submodule.repo,
         submodule.baseRef,
         submodule.headRef,
         includeOpen,

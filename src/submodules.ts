@@ -8,11 +8,14 @@ export interface SubmoduleInfo {
   path: string
   baseRef: string
   headRef: string
-  url: string
+  owner: string
+  repo: string
 }
 
 export class Submodules {
   constructor(private octokit: Octokit, private failOnError: boolean) {}
+  private static readonly gitHubRepo =
+    /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+).git$/
 
   async getSubmodules(
     owner: string,
@@ -25,7 +28,6 @@ export class Submodules {
     for (const path of paths) {
       const baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
       const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
-
       if (
         !Array.isArray(baseRef) &&
         !Array.isArray(headRef) &&
@@ -34,19 +36,27 @@ export class Submodules {
         baseRef.submodule_git_url !== undefined &&
         baseRef.submodule_git_url === headRef.submodule_git_url
       ) {
-        modsInfo.push({
-          path,
-          baseRef: baseRef.sha,
-          headRef: headRef.sha,
-          url: baseRef.submodule_git_url
-        })
-
-        core.info(`ℹ️ Submodule found.
-          Path: ${path}
-          BaseRef: ${baseRef.sha}
-          HeadRef: ${headRef.sha}
-          URL: ${baseRef.submodule_git_url}
-        `)
+        const match = headRef.submodule_git_url.match(Submodules.gitHubRepo)
+        if (match && match.groups) {
+          modsInfo.push({
+            path,
+            baseRef: baseRef.sha,
+            headRef: headRef.sha,
+            owner: match.groups.owner,
+            repo: match.groups.repo
+          })
+          core.info(`ℹ️ Submodule found.
+                Path: ${path}
+                BaseRef: ${baseRef.sha}
+                HeadRef: ${headRef.sha}
+                URL: ${baseRef.submodule_git_url}
+              `)
+        } else {
+          failOrError(
+            `💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`,
+            this.failOnError
+          )
+        }
       } else {
         failOrError(
           `💥 Missing or couldn't resolve submodule path '${path}'.\n`,
