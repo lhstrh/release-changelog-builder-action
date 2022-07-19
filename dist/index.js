@@ -188,7 +188,8 @@ exports.DefaultConfiguration = {
     base_branches: [],
     submodule_paths: [],
     // template for submodule sections
-    submodule_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Uncategorized**\n${{UNCATEGORIZED}}\n'
+    submodule_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
+    submodule_empty_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
 };
 
 
@@ -405,7 +406,7 @@ function run() {
             let appendix = '';
             for (const submodule of submodules) {
                 configuration.template = configuration.submodule_template;
-                configuration.empty_template = `${configuration.submodule_template}No changes.`; // FIXME: make this configurable.
+                configuration.empty_template = configuration.submodule_empty_template;
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
                 appendix += `${notes}\n`;
             }

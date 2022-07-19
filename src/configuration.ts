@@ -16,6 +16,7 @@ export interface Configuration {
   base_branches: string[]
   submodule_paths: string[]
   submodule_template: string
+  submodule_empty_template: string
 }
 
 export interface Category {
@@ -99,5 +100,7 @@ export const DefaultConfiguration: Configuration = {
   submodule_paths: [], // paths in which to look for submodules
   // template for submodule sections
   submodule_template:
-    '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Uncategorized**\n${{UNCATEGORIZED}}\n'
+    '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
+  submodule_empty_template:
+    '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
 }

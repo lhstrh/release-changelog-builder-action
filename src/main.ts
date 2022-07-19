@@ -78,7 +78,7 @@ async function run(): Promise<void> {
 
     for (const submodule of submodules) {
       configuration.template = configuration.submodule_template
-      configuration.empty_template = `${configuration.submodule_template}No changes.` // FIXME: make this configurable.
+      configuration.empty_template = configuration.submodule_empty_template
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
