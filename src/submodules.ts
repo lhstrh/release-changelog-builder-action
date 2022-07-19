@@ -12,10 +12,14 @@ export interface SubmoduleInfo {
   repo: string
 }
 
+export interface RepoInfo {
+  baseUrl: string
+  owner: string
+  repo: string
+}
+
 export class Submodules {
   constructor(private octokit: Octokit, private failOnError: boolean) {}
-  private static readonly gitHubRepo =
-    /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+)(?:.git)?$/
 
   async getSubmodules(
     owner: string,
@@ -42,25 +46,24 @@ export class Submodules {
         'submodule_git_url' in baseRef &&
         'submodule_git_url' in headRef &&
         baseRef.submodule_git_url !== undefined &&
-        baseRef.submodule_git_url === headRef.submodule_git_url
+        headRef.submodule_git_url !== undefined
       ) {
-        const match = headRef.submodule_git_url.match(Submodules.gitHubRepo)
-        if (match && match.groups) {
-          let info = {
+        const repoInfo = this.getRepoInfo(headRef.submodule_git_url)
+        if (repoInfo) {
+          modsInfo.push({
             path,
             baseRef: baseRef.sha,
             headRef: headRef.sha,
-            owner: match.groups.owner,
-            repo: match.groups.repo
-          }
-          modsInfo.push(info)
+            owner: repoInfo.owner,
+            repo: repoInfo.repo
+          })
           core.info(`ℹ️ Submodule found.
             url: ${baseRef.submodule_git_url}
-            path: ${info.path}
-            base: ${info.baseRef}
-            head: ${info.headRef}
-            repo: ${info.repo}
-            owner: ${info.repo}
+            path: ${path}
+            base: ${baseRef.sha}
+            head: ${headRef.sha}
+            repo: ${repoInfo.repo}
+            owner: ${repoInfo.owner}
           `)
         } else {
           failOrError(
@@ -76,6 +79,19 @@ export class Submodules {
       }
     }
     return modsInfo
+  }
+
+  getRepoInfo(submoduleUrl: string): RepoInfo | undefined {
+    const match = submoduleUrl.match(
+      /^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+)?$/
+    )
+    if (match && match.groups) {
+      return {
+        baseUrl: match.groups.base.trim(),
+        owner: match.groups.owner,
+        repo: match.groups.repo.replace(/.git$/, '').trim()
+      }
+    }
   }
 
   private async fetchRef(
