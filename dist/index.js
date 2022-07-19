@@ -188,7 +188,7 @@ exports.DefaultConfiguration = {
     base_branches: [],
     submodule_paths: [],
     // template for submodule sections
-    submodule_template: '### Submodule [${{OWNER}}/${REPO}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}'
+    submodule_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Uncategorized**\n${{UNCATEGORIZED}}\n'
 };
 
 
@@ -392,20 +392,20 @@ function run() {
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
             // read in summary
-            const summary = core.getInput('summary') || '';
+            const text = core.getInput('text') || '';
             // load octokit instance
             const octokit = new rest_1.Octokit({
                 auth: `token ${token || process.env.GITHUB_TOKEN}`,
                 baseUrl: `${baseUrl || 'https://api.github.com'}`
             });
-            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, summary).build();
+            let result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
             const submodule_paths = configuration.submodule_paths;
             const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, fromTag, toTag, submodule_paths);
             configuration.submodule_paths = [];
             let appendix = '';
             for (const submodule of submodules) {
                 configuration.template = configuration.submodule_template;
-                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, summary).build();
+                const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
                 appendix += `${notes}\n`;
             }
             if (submodules.length > 0) {
