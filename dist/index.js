@@ -269,14 +269,6 @@ class GitCommandManager {
             return output.stdout.trim();
         });
     }
-    latestCommit() {
-        var _a, _b;
-        return __awaiter(this, void 0, void 0, function* () {
-            const outputMatcher = /(?<hash>[a-f0-9]{40}) (?<name>.+)/;
-            const showRefOutput = yield this.execGit(['show-ref', '--heads']);
-            return ((_b = (_a = showRefOutput.stdout.match(outputMatcher)) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.hash) || '';
-        });
-    }
     initialCommit() {
         return __awaiter(this, void 0, void 0, function* () {
             const revListOutput = yield this.execGit([
@@ -1370,18 +1362,10 @@ class Tags {
                 }
             }
             else {
-                // Look up ref in case 'head' was specified.
-                if ((toTag === null || toTag === void 0 ? void 0 : toTag.toLowerCase()) === 'head') {
-                    const gitHelper = yield (0, gitHelper_1.createCommandManager)(repositoryPath);
-                    const latestCommit = yield gitHelper.latestCommit();
-                    resultToTag = { name: latestCommit, commit: latestCommit };
-                }
-                else {
-                    resultToTag = {
-                        name: toTag,
-                        commit: toTag
-                    };
-                }
+                resultToTag = {
+                    name: toTag,
+                    commit: toTag
+                };
             }
             // ensure toTag is specified
             toTag = resultToTag.name;
@@ -1734,9 +1718,7 @@ function buildChangelog(prs, options) {
 }
 exports.buildChangelog = buildChangelog;
 function fillAdditionalPlaceholders(text, options) {
-    const now = new Date();
     let transformed = text;
-    transformed = transformed.replace(/\${{DATE}}/g, `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
     transformed = transformed.replace(/\${{TEXT}}/g, options.text);
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);

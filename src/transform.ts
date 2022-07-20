@@ -285,12 +285,7 @@ export function fillAdditionalPlaceholders(
   text: string,
   options: ReleaseNotesOptions
 ): string {
-  const now = new Date()
   let transformed = text
-  transformed = transformed.replace(
-    /\${{DATE}}/g,
-    `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
-  )
   transformed = transformed.replace(/\${{TEXT}}/g, options.text)
   transformed = transformed.replace(/\${{OWNER}}/g, options.owner)
   transformed = transformed.replace(/\${{REPO}}/g, options.repo)
