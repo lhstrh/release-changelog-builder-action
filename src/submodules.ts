@@ -30,6 +30,7 @@ export class Submodules {
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
     core.startGroup(`📘 Detecting submodules`)
+
     for (const path of paths) {
       const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
       let baseRef
