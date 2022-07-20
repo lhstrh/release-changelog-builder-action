@@ -48,6 +48,15 @@ async function run(): Promise<void> {
       baseUrl: `${baseUrl || 'https://api.github.com'}`
     })
 
+    const submodule_paths = configuration.submodule_paths
+    const submodules = await new Submodules(octokit, failOnError).getSubmodules(
+      owner,
+      repo,
+      fromTag,
+      toTag,
+      submodule_paths
+    )
+
     let result = await new ReleaseNotesBuilder(
       octokit,
       repositoryPath,
@@ -64,21 +73,12 @@ async function run(): Promise<void> {
       text
     ).build()
 
-    const submodule_paths = configuration.submodule_paths
-    const submodules = await new Submodules(octokit, failOnError).getSubmodules(
-      owner,
-      repo,
-      fromTag,
-      toTag,
-      submodule_paths
-    )
-
     let appendix = ''
     configuration.template = configuration.submodule_template
     configuration.empty_template = configuration.submodule_empty_template
 
     for (const submodule of submodules) {
-      core.startGroup(`📘 Indexing submodule '${submodule.repo}'`)
+      core.info(`⚙️ Indexing submodule '${submodule.repo}'...`)
       const notes = await new ReleaseNotesBuilder(
         octokit,
         submodule.path,
