@@ -414,11 +414,7 @@ function run() {
             configuration.template = configuration.submodule_template;
             configuration.empty_template = configuration.submodule_empty_template;
             for (const submodule of submodules) {
-<<<<<<< HEAD
-                core.startGroup(`📘 Indexing submodule '${submodule.repo}'`);
-=======
                 core.info(`⚙️ Indexing submodule '${submodule.repo}'...`);
->>>>>>> 4d95c4f (More tweaking)
                 const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
                 appendix += `${notes}\n`;
                 core.endGroup();
