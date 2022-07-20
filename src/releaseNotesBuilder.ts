@@ -23,6 +23,14 @@ export class ReleaseNotesBuilder {
     private text: string
   ) {}
 
+  getFromTag(): string {
+    return this.fromTag || ''
+  }
+
+  getToTag(): string {
+    return this.toTag || ''
+  }
+
   async build(): Promise<string | null> {
     if (!this.owner) {
       failOrError(`💥 Missing or couldn't resolve 'owner'`, this.failOnError)
