@@ -407,14 +407,12 @@ function run() {
                 configuration.template = configuration.submodule_template;
                 configuration.empty_template = configuration.submodule_empty_template;
                 const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, mainBuilder.getFromTag(), mainBuilder.getToTag(), configuration.submodule_paths);
-                core.startGroup(`📘 Generate notes for submodules`);
                 for (const submodule of submodules) {
                     core.info(`⚙️ Indexing submodule '${submodule.repo}'...`);
                     const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
-                    appendix += `${notes}\n`;
+                    appendix += notes;
                 }
-                result = `${result}\n${appendix}`;
-                core.endGroup();
+                result = `${result}${appendix}`;
             }
             core.setOutput('changelog', result);
             // Debugging...
