@@ -83,7 +83,7 @@ async function run(): Promise<void> {
         mainBuilder.getToTag(),
         configuration.submodule_paths
       )
-      core.startGroup(`📘 Generate notes for submodules`)
+
       for (const submodule of submodules) {
         core.info(`⚙️ Indexing submodule '${submodule.repo}'...`)
         const notes = await new ReleaseNotesBuilder(
@@ -101,11 +101,10 @@ async function run(): Promise<void> {
           configuration,
           text
         ).build()
-        appendix += `${notes}\n`
+        appendix += notes
       }
 
-      result = `${result}\n${appendix}`
-      core.endGroup()
+      result = `${result}${appendix}`
     }
 
     core.setOutput('changelog', result)
