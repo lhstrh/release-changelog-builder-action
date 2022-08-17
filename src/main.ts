@@ -6,6 +6,8 @@ import {
   writeOutput
 } from './utils'
 import {ReleaseNotesBuilder} from './releaseNotesBuilder'
+import {Octokit} from '@octokit/rest'
+import {Submodules} from './submodules'
 
 async function run(): Promise<void> {
   core.setOutput('failed', false) // mark the action not failed by default
@@ -37,10 +39,17 @@ async function run(): Promise<void> {
     const failOnError = core.getInput('failOnError') === 'true'
     const fetchReviewers = core.getInput('fetchReviewers') === 'true'
     const commitMode = core.getInput('commitMode') === 'true'
+    // read in the optional text
+    const text = core.getInput('text') || ''
 
-    const result = await new ReleaseNotesBuilder(
-      baseUrl,
-      token,
+    // load octokit instance
+    const octokit = new Octokit({
+      auth: `token ${token || process.env.GITHUB_TOKEN}`,
+      baseUrl: `${baseUrl || 'https://api.github.com'}`
+    })
+
+    const mainBuilder = new ReleaseNotesBuilder(
+      octokit,
       repositoryPath,
       owner,
       repo,
@@ -51,10 +60,57 @@ async function run(): Promise<void> {
       ignorePreReleases,
       fetchReviewers,
       commitMode,
-      configuration
-    ).build()
+      configuration,
+      text
+    )
+    let result = await mainBuilder.build()
+    let appendix = ''
+
+    if (
+      configuration.submodule_paths &&
+      configuration.submodule_paths.length > 0
+    ) {
+      configuration.template = configuration.submodule_template
+      configuration.empty_template = configuration.submodule_empty_template
+
+      const submodules = await new Submodules(
+        octokit,
+        failOnError
+      ).getSubmodules(
+        owner,
+        repo,
+        mainBuilder.getFromTag(),
+        mainBuilder.getToTag(),
+        configuration.submodule_paths
+      )
+
+      for (const submodule of submodules) {
+        core.info(`⚙️ Indexing submodule '${submodule.repo}'...`)
+        const notes = await new ReleaseNotesBuilder(
+          octokit,
+          submodule.path,
+          submodule.owner,
+          submodule.repo,
+          submodule.baseRef,
+          submodule.headRef,
+          includeOpen,
+          failOnError,
+          ignorePreReleases,
+          fetchReviewers,
+          commitMode,
+          configuration,
+          text
+        ).build()
+        appendix += notes
+      }
+
+      result = `${result}${appendix}`
+    }
 
     core.setOutput('changelog', result)
+
+    // Debugging...
+    core.info(`${result}`)
 
     // write the result in changelog to file if possible
     const outputFile: string = core.getInput('outputFile')

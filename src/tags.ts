@@ -119,6 +119,9 @@ export class Tags {
     maxTagsToFetch: number,
     tagResolver: TagResolver
   ): Promise<TagResult> {
+    let resultToTag: TagInfo | null
+    let resultFromTag: TagInfo | null
+
     // filter out tags not matching the specified filter
     const filteredTags = filterTags(
       // retrieve the tags from the API
@@ -149,9 +152,6 @@ export class Tags {
         }
       })
     }
-
-    let resultToTag: TagInfo | null
-    let resultFromTag: TagInfo | null
 
     // ensure to resolve the toTag if it was not provided
     if (!toTag) {

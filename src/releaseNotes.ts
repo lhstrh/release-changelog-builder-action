@@ -16,6 +16,7 @@ export interface ReleaseNotesOptions {
   fetchReviewers: boolean // defines if the action should fetch the reviewers for PRs - approved reviewers are not included in the default PR listing
   commitMode: boolean // defines if we use the alternative commit based mode. note: this is only partially supported
   configuration: Configuration // the configuration as defined in `configuration.ts`
+  text: string // optional text to feature in the notes
 }
 
 export class ReleaseNotes {

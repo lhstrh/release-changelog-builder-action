@@ -185,7 +185,11 @@ exports.DefaultConfiguration = {
         filter: undefined,
         transformer: undefined // transforms the tag name using the regex, run after the filter
     },
-    base_branches: [] // target branches for the merged PR ignoring PRs with different target branch, by default it will get all PRs
+    base_branches: [],
+    submodule_paths: [],
+    // template for submodule sections
+    submodule_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
+    submodule_empty_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
 };
 
 
@@ -361,6 +365,8 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const utils_1 = __nccwpck_require__(918);
 const releaseNotesBuilder_1 = __nccwpck_require__(4883);
+const rest_1 = __nccwpck_require__(5375);
+const submodules_1 = __nccwpck_require__(4499);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.setOutput('failed', false); // mark the action not failed by default
@@ -386,8 +392,31 @@ function run() {
             const failOnError = core.getInput('failOnError') === 'true';
             const fetchReviewers = core.getInput('fetchReviewers') === 'true';
             const commitMode = core.getInput('commitMode') === 'true';
-            const result = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(baseUrl, token, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration).build();
+            // read in the optional text
+            const text = core.getInput('text') || '';
+            // load octokit instance
+            const octokit = new rest_1.Octokit({
+                auth: `token ${token || process.env.GITHUB_TOKEN}`,
+                baseUrl: `${baseUrl || 'https://api.github.com'}`
+            });
+            const mainBuilder = new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text);
+            let result = yield mainBuilder.build();
+            let appendix = '';
+            if (configuration.submodule_paths &&
+                configuration.submodule_paths.length > 0) {
+                configuration.template = configuration.submodule_template;
+                configuration.empty_template = configuration.submodule_empty_template;
+                const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, mainBuilder.getFromTag(), mainBuilder.getToTag(), configuration.submodule_paths);
+                for (const submodule of submodules) {
+                    core.info(`⚙️ Indexing submodule '${submodule.repo}'...`);
+                    const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
+                    appendix += notes;
+                }
+                result = `${result}${appendix}`;
+            }
             core.setOutput('changelog', result);
+            // Debugging...
+            core.info(`${result}`);
             // write the result in changelog to file if possible
             const outputFile = core.getInput('outputFile');
             if (outputFile !== '') {
@@ -914,15 +943,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReleaseNotesBuilder = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const configuration_1 = __nccwpck_require__(5527);
-const rest_1 = __nccwpck_require__(5375);
 const releaseNotes_1 = __nccwpck_require__(5882);
 const tags_1 = __nccwpck_require__(7532);
 const utils_1 = __nccwpck_require__(918);
 const transform_1 = __nccwpck_require__(1644);
 class ReleaseNotesBuilder {
-    constructor(baseUrl, token, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration) {
-        this.baseUrl = baseUrl;
-        this.token = token;
+    constructor(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen = false, failOnError, ignorePreReleases, fetchReviewers = false, commitMode, configuration, text) {
+        this.octokit = octokit;
         this.repositoryPath = repositoryPath;
         this.owner = owner;
         this.repo = repo;
@@ -934,6 +961,13 @@ class ReleaseNotesBuilder {
         this.fetchReviewers = fetchReviewers;
         this.commitMode = commitMode;
         this.configuration = configuration;
+        this.text = text;
+    }
+    getFromTag() {
+        return this.fromTag || '';
+    }
+    getToTag() {
+        return this.toTag || '';
     }
     build() {
         var _a, _b;
@@ -955,17 +989,27 @@ class ReleaseNotesBuilder {
                 core.debug(`Resolved 'repo' as ${this.repo}`);
             }
             core.endGroup();
-            // load octokit instance
-            const octokit = new rest_1.Octokit({
-                auth: `token ${this.token || process.env.GITHUB_TOKEN}`,
-                baseUrl: `${this.baseUrl || 'https://api.github.com'}`
-            });
-            // ensure proper from <-> to tag range
             core.startGroup(`🔖 Resolve tags`);
-            const tagsApi = new tags_1.Tags(octokit);
-            const tagRange = yield tagsApi.retrieveRange(this.repositoryPath, this.owner, this.repo, this.fromTag, this.toTag, this.ignorePreReleases, this.configuration.max_tags_to_fetch ||
-                configuration_1.DefaultConfiguration.max_tags_to_fetch, this.configuration.tag_resolver || configuration_1.DefaultConfiguration.tag_resolver);
-            const thisTag = (_a = tagRange.to) === null || _a === void 0 ? void 0 : _a.name;
+            const sha1 = /^[a-f0-9]{40}$/;
+            let tagRange;
+            // check whether the tags need to be resolved or not
+            if (this.fromTag &&
+                sha1.test(this.fromTag) &&
+                this.toTag &&
+                sha1.test(this.toTag)) {
+                core.info(`Given start and end tags are plain SHA-1 hashes.`);
+                tagRange = {
+                    from: { name: this.fromTag, commit: this.fromTag },
+                    to: { name: this.toTag, commit: this.toTag }
+                };
+            }
+            else {
+                // ensure proper from <-> to tag range
+                const tagsApi = new tags_1.Tags(this.octokit);
+                tagRange = yield tagsApi.retrieveRange(this.repositoryPath, this.owner, this.repo, this.fromTag, this.toTag, this.ignorePreReleases, this.configuration.max_tags_to_fetch ||
+                    configuration_1.DefaultConfiguration.max_tags_to_fetch, this.configuration.tag_resolver || configuration_1.DefaultConfiguration.tag_resolver);
+            }
+            const thisTag = (_a = tagRange === null || tagRange === void 0 ? void 0 : tagRange.to) === null || _a === void 0 ? void 0 : _a.name;
             if (!thisTag) {
                 (0, utils_1.failOrError)(`💥 Missing or couldn't resolve 'toTag'`, this.failOnError);
                 return null;
@@ -973,7 +1017,7 @@ class ReleaseNotesBuilder {
             else {
                 this.toTag = thisTag;
                 core.setOutput('toTag', thisTag);
-                core.debug(`Resolved 'toTag' as ${thisTag}`);
+                core.info(`Resolved 'toTag' as ${thisTag}`);
             }
             const previousTag = (_b = tagRange.from) === null || _b === void 0 ? void 0 : _b.name;
             if (previousTag == null) {
@@ -982,7 +1026,7 @@ class ReleaseNotesBuilder {
             }
             this.fromTag = previousTag;
             core.setOutput('fromTag', previousTag);
-            core.debug(`fromTag resolved via previousTag as: ${previousTag}`);
+            core.info(`fromTag resolved via previousTag as: ${previousTag}`);
             core.endGroup();
             const options = {
                 owner: this.owner,
@@ -993,9 +1037,10 @@ class ReleaseNotesBuilder {
                 failOnError: this.failOnError,
                 fetchReviewers: this.fetchReviewers,
                 commitMode: this.commitMode,
-                configuration: this.configuration
+                configuration: this.configuration,
+                text: this.text
             };
-            const releaseNotes = new releaseNotes_1.ReleaseNotes(octokit, options);
+            const releaseNotes = new releaseNotes_1.ReleaseNotes(this.octokit, options);
             return ((yield releaseNotes.pull()) ||
                 (0, transform_1.fillAdditionalPlaceholders)(this.configuration.empty_template ||
                     configuration_1.DefaultConfiguration.empty_template, options));
@@ -1003,6 +1048,127 @@ class ReleaseNotesBuilder {
     }
 }
 exports.ReleaseNotesBuilder = ReleaseNotesBuilder;
+
+
+/***/ }),
+
+/***/ 4499:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Submodules = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const utils_1 = __nccwpck_require__(918);
+class Submodules {
+    constructor(octokit, failOnError) {
+        this.octokit = octokit;
+        this.failOnError = failOnError;
+    }
+    getSubmodules(owner, repo, fromTag, toTag, paths) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const modsInfo = [];
+            core.startGroup(`📘 Detecting submodules`);
+            for (const path of paths) {
+                const headRef = (yield this.fetchRef(owner, repo, path, toTag)).data;
+                let baseRef;
+                try {
+                    baseRef = (yield this.fetchRef(owner, repo, path, fromTag)).data;
+                }
+                catch (error) {
+                    baseRef = headRef;
+                    core.warning(`Unable to find base ref. Perhaps the submodule '${path}' was newly added?`);
+                }
+                if (!Array.isArray(baseRef) &&
+                    !Array.isArray(headRef) &&
+                    'submodule_git_url' in baseRef &&
+                    'submodule_git_url' in headRef &&
+                    baseRef.submodule_git_url !== undefined &&
+                    headRef.submodule_git_url !== undefined) {
+                    const repoInfo = this.getRepoInfo(headRef.submodule_git_url);
+                    if (repoInfo) {
+                        modsInfo.push({
+                            path,
+                            baseRef: baseRef.sha,
+                            headRef: headRef.sha,
+                            owner: repoInfo.owner,
+                            repo: repoInfo.repo
+                        });
+                        core.info(`ℹ️ Submodule found: ${baseRef.submodule_git_url}
+          repo: ${repoInfo.repo}
+          owner: ${repoInfo.owner}
+          path: ${path}
+          base: ${baseRef.sha}
+          head: ${headRef.sha}`);
+                    }
+                    else {
+                        (0, utils_1.failOrError)(`💥 Submodule '${baseRef.submodule_git_url}' is not a valid GitHub repository.\n`, this.failOnError);
+                    }
+                }
+                else {
+                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
+                }
+            }
+            core.endGroup();
+            return modsInfo;
+        });
+    }
+    getRepoInfo(submoduleUrl) {
+        const match = submoduleUrl.match(/^(?<base>https:\/\/github.com\/|git@github.com:)(?<owner>.+)\/(?<repo>.+)?$/);
+        if (match && match.groups) {
+            return {
+                baseUrl: match.groups.base.trim(),
+                owner: match.groups.owner,
+                repo: match.groups.repo.replace(/.git$/, '').trim()
+            };
+        }
+    }
+    fetchRef(owner, repo, path, ref) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const options = this.octokit.repos.getContent.endpoint.merge({
+                owner,
+                repo,
+                path,
+                ref
+            });
+            return this.octokit.repos.getContent(options);
+        });
+    }
+}
+exports.Submodules = Submodules;
 
 
 /***/ }),
@@ -1141,6 +1307,8 @@ class Tags {
     retrieveRange(repositoryPath, owner, repo, fromTag, toTag, ignorePreReleases, maxTagsToFetch, tagResolver) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            let resultToTag;
+            let resultFromTag;
             // filter out tags not matching the specified filter
             const filteredTags = filterTags(
             // retrieve the tags from the API
@@ -1167,8 +1335,6 @@ class Tags {
                     }
                 });
             }
-            let resultToTag;
-            let resultFromTag;
             // ensure to resolve the toTag if it was not provided
             if (!toTag) {
                 // if not specified try to retrieve tag from github.context.ref
@@ -1553,6 +1719,7 @@ function buildChangelog(prs, options) {
 exports.buildChangelog = buildChangelog;
 function fillAdditionalPlaceholders(text, options) {
     let transformed = text;
+    transformed = transformed.replace(/\${{TEXT}}/g, options.text);
     transformed = transformed.replace(/\${{OWNER}}/g, options.owner);
     transformed = transformed.replace(/\${{REPO}}/g, options.repo);
     transformed = transformed.replace(/\${{FROM_TAG}}/g, options.fromTag);
