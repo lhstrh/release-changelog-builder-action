@@ -35,12 +35,18 @@ export class Submodules {
       let headRef
       let baseRef
       try {
-        headRef = (await this.fetchRef(owner, repo, path, toTag)).data
+        const resp = await this.fetchRef(owner, repo, path, toTag)
+        if (resp.status === 200) {
+          headRef = resp.data
+        } else {
+          core.warning(
+            `Unable to find head ref. It looks like submodule '${path}' was removed. Ignoring.`
+          )
+          continue
+        }
       } catch (error) {
-        core.warning(
-          `Unable to find head ref. It looks like submodule '${path}' was removed. Ignoring.`
-        )
-        continue
+        core.error(`Error retrieving submodule '${path}'.`)
+        throw error
       }
       try {
         baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
