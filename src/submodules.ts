@@ -32,8 +32,16 @@ export class Submodules {
     core.startGroup(`📘 Detecting submodules`)
 
     for (const path of paths) {
-      const headRef = (await this.fetchRef(owner, repo, path, toTag)).data
+      let headRef
       let baseRef
+      try {
+        headRef = (await this.fetchRef(owner, repo, path, toTag)).data
+      } catch (error) {
+        core.warning(
+          `Unable to find head ref. It looks like submodule '${path}' was removed. Ignoring.`
+        )
+        continue
+      }
       try {
         baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
       } catch (error) {
