@@ -48,6 +48,7 @@ export class Submodules {
         core.error(`Error retrieving submodule '${path}'.`)
         throw error
       }
+      core.info(headRef.toString())
       try {
         baseRef = (await this.fetchRef(owner, repo, path, fromTag)).data
       } catch (error) {
@@ -56,6 +57,7 @@ export class Submodules {
           `Unable to find base ref. Perhaps the submodule '${path}' was newly added?`
         )
       }
+      core.info(baseRef.toString())
       if (
         !Array.isArray(baseRef) &&
         !Array.isArray(headRef) &&
