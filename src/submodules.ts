@@ -29,8 +29,6 @@ export class Submodules {
     paths: string[]
   ): Promise<SubmoduleInfo[]> {
     const modsInfo: SubmoduleInfo[] = []
-    core.startGroup(`📘 ***************************`)
-    core.info(`Debugging`)
     core.startGroup(`📘 Detecting submodules`)
 
     for (const path of paths) {
