@@ -1,12 +1,8 @@
 import {Octokit, RestEndpointMethodTypes} from '@octokit/rest'
 import * as core from '@actions/core'
 import {failOrError} from './utils'
-import {exec} from 'child_process'
-import {promisify} from 'util'
-const runCmd = promisify(exec)
 
-type contentReqResponse =
-  RestEndpointMethodTypes['repos']['getContent']['response']
+type contentReqResponse = RestEndpointMethodTypes['repos']['getContent']['response']
 export interface SubmoduleInfo {
   path: string
   baseRef: string

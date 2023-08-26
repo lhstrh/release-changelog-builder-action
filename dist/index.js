@@ -1092,9 +1092,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Submodules = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(918);
-const child_process_1 = __nccwpck_require__(2081);
-const util_1 = __nccwpck_require__(3837);
-const runCmd = (0, util_1.promisify)(child_process_1.exec);
 class Submodules {
     constructor(owner, repo, fromTag, toTag, repositoryPath, octokit, failOnError) {
         this.owner = owner;
@@ -2005,16 +2002,16 @@ exports.resolveConfiguration = resolveConfiguration;
  * Reads in the configuration from the JSON file
  */
 function readConfiguration(filename) {
-    let rawdata;
+    let rawData;
     try {
-        rawdata = fs.readFileSync(filename, 'utf8');
+        rawData = fs.readFileSync(filename, 'utf8');
     }
     catch (error) {
         core.info(`⚠️ Configuration provided, but it couldn't be found. Fallback to Defaults.`);
         return null;
     }
     try {
-        const configurationJSON = JSON.parse(rawdata);
+        const configurationJSON = JSON.parse(rawData);
         return configurationJSON;
     }
     catch (error) {
