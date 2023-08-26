@@ -91,7 +91,7 @@ export const DefaultConfiguration: Configuration = {
     transformer: undefined // transforms the tag name using the regex, run after the filter
   },
   base_branches: [], // target branches for the merged PR ignoring PRs with different target branch, by default it will get all PRs
-  submodule_urls: [], // paths in which to look for submodules
+  submodule_urls: [], // urls of submodules
   // template for submodule sections
   submodule_template:
     '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
