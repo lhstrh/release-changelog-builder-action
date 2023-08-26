@@ -1,10 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {
-  resolveConfiguration,
-  retrieveRepositoryPath,
-  writeOutput
-} from './utils'
+import {resolveConfiguration, retrieveRepositoryPath, writeOutput} from './utils'
 import {ReleaseNotesBuilder} from './releaseNotesBuilder'
 import {Octokit} from '@octokit/rest'
 import {Submodules} from './submodules'
@@ -20,10 +16,7 @@ async function run(): Promise<void> {
 
     // read in configuration file if possible
     const configurationFile: string = core.getInput('configuration')
-    const configuration = resolveConfiguration(
-      repositoryPath,
-      configurationFile
-    )
+    const configuration = resolveConfiguration(repositoryPath, configurationFile)
 
     // read in repository inputs
     const baseUrl = core.getInput('baseUrl')
@@ -66,23 +59,19 @@ async function run(): Promise<void> {
     let result = await mainBuilder.build()
     let appendix = ''
 
-    if (
-      configuration.submodule_paths &&
-      configuration.submodule_paths.length > 0
-    ) {
+    if (configuration.submodule_urls && configuration.submodule_urls.length > 0) {
       configuration.template = configuration.submodule_template
       configuration.empty_template = configuration.submodule_empty_template
 
       const submodules = await new Submodules(
-        octokit,
-        failOnError
-      ).getSubmodules(
         owner,
         repo,
         mainBuilder.getFromTag(),
         mainBuilder.getToTag(),
-        configuration.submodule_paths
-      )
+        repositoryPath,
+        octokit,
+        failOnError
+      ).getSubmodules(configuration.submodule_urls)
 
       for (const submodule of submodules) {
         core.info(`⚙️ Indexing submodule '${submodule.repo}'...`)
