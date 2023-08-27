@@ -23,7 +23,6 @@ export class Submodules {
     private repo: string,
     private fromTag: string,
     private toTag: string,
-    private repositoryPath: string,
     private octokit: Octokit,
     private failOnError: boolean
   ) {}
@@ -39,6 +38,16 @@ export class Submodules {
       ref
     })
 
+    // Simplify URL to increase likelihood of matches
+    let simpleUrl = url
+    const proto = url.match(/.+:\/\/(.+)/)
+    if (proto) {
+      // Cut off the protocol
+      simpleUrl = proto[1]
+    }
+    // Cut off trailing .git if there is one
+    simpleUrl = simpleUrl.replace(/.git$/, '')
+
     // Split off sections
     const sections = data
       .toString()
@@ -47,7 +56,7 @@ export class Submodules {
 
     // Find the match for search url
     for (const section of sections) {
-      if (section.includes(url)) {
+      if (section.includes(simpleUrl)) {
         const match = section.match(/path = (.+)/)
         if (match) {
           return Promise.resolve(match[1])

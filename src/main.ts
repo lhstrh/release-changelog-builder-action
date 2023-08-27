@@ -68,7 +68,6 @@ async function run(): Promise<void> {
         repo,
         mainBuilder.getFromTag(),
         mainBuilder.getToTag(),
-        repositoryPath,
         octokit,
         failOnError
       ).getSubmodules(configuration.submodule_urls)
@@ -98,7 +97,7 @@ async function run(): Promise<void> {
 
     core.setOutput('changelog', result)
 
-    // Debugging...
+    // Show the resulting log
     core.info(`${result}`)
 
     // write the result in changelog to file if possible
