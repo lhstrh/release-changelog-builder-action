@@ -14,7 +14,7 @@ export interface Configuration {
   transformers: Transformer[]
   tag_resolver: TagResolver
   base_branches: string[]
-  submodule_paths: string[]
+  submodule_urls: string[]
   submodule_template: string
   submodule_empty_template: string
 }
@@ -42,13 +42,7 @@ export interface Transformer extends Regex {
 }
 
 export interface Extractor extends Transformer {
-  on_property?:
-    | ('title' | 'author' | 'milestone' | 'body')[]
-    | 'title'
-    | 'author'
-    | 'milestone'
-    | 'body'
-    | undefined // retrieve the property to extract the value from
+  on_property?: ('title' | 'author' | 'milestone' | 'body')[] | 'title' | 'author' | 'milestone' | 'body' | undefined // retrieve the property to extract the value from
   method?: 'replace' | 'match' | undefined // the method to use to extract the value, `match` will not use the `target` property
   on_empty?: string | undefined // in case the regex results in an empty string, this value is gonna be used instead (only for label_extractor currently)
 }
@@ -97,10 +91,9 @@ export const DefaultConfiguration: Configuration = {
     transformer: undefined // transforms the tag name using the regex, run after the filter
   },
   base_branches: [], // target branches for the merged PR ignoring PRs with different target branch, by default it will get all PRs
-  submodule_paths: [], // paths in which to look for submodules
+  submodule_urls: [], // urls of submodules
   // template for submodule sections
   submodule_template:
     '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
-  submodule_empty_template:
-    '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
+  submodule_empty_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
 }

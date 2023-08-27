@@ -186,7 +186,7 @@ exports.DefaultConfiguration = {
         transformer: undefined // transforms the tag name using the regex, run after the filter
     },
     base_branches: [],
-    submodule_paths: [],
+    submodule_urls: [],
     // template for submodule sections
     submodule_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\n${{CHANGELOG}}**🏷️ Miscellaneous**\n${{UNCATEGORIZED}}\n',
     submodule_empty_template: '### Submodule [${{OWNER}}/${{REPO}}](http://github.com/${{OWNER}}/${{REPO})\n\nNo changes.'
@@ -402,11 +402,10 @@ function run() {
             const mainBuilder = new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, repositoryPath, owner, repo, fromTag, toTag, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text);
             let result = yield mainBuilder.build();
             let appendix = '';
-            if (configuration.submodule_paths &&
-                configuration.submodule_paths.length > 0) {
+            if (configuration.submodule_urls && configuration.submodule_urls.length > 0) {
                 configuration.template = configuration.submodule_template;
                 configuration.empty_template = configuration.submodule_empty_template;
-                const submodules = yield new submodules_1.Submodules(octokit, failOnError).getSubmodules(owner, repo, mainBuilder.getFromTag(), mainBuilder.getToTag(), configuration.submodule_paths);
+                const submodules = yield new submodules_1.Submodules(owner, repo, mainBuilder.getFromTag(), mainBuilder.getToTag(), repositoryPath, octokit, failOnError).getSubmodules(configuration.submodule_urls);
                 for (const submodule of submodules) {
                     core.info(`⚙️ Indexing submodule '${submodule.repo}'...`);
                     const notes = yield new releaseNotesBuilder_1.ReleaseNotesBuilder(octokit, submodule.path, submodule.owner, submodule.repo, submodule.baseRef, submodule.headRef, includeOpen, failOnError, ignorePreReleases, fetchReviewers, commitMode, configuration, text).build();
@@ -1094,38 +1093,73 @@ exports.Submodules = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(918);
 class Submodules {
-    constructor(octokit, failOnError) {
+    constructor(owner, repo, fromTag, toTag, repositoryPath, octokit, failOnError) {
+        this.owner = owner;
+        this.repo = repo;
+        this.fromTag = fromTag;
+        this.toTag = toTag;
+        this.repositoryPath = repositoryPath;
         this.octokit = octokit;
         this.failOnError = failOnError;
     }
-    getSubmodules(owner, repo, fromTag, toTag, paths) {
+    findPath(url, ref) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data } = yield this.octokit.rest.repos.getContent({
+                mediaType: {
+                    format: 'raw'
+                },
+                owner: this.owner,
+                repo: this.repo,
+                path: '.gitmodules',
+                ref
+            });
+            // Split off sections
+            const sections = data
+                .toString()
+                .split(/\[submodule .*\]/)
+                .filter(it => it.length > 0);
+            // Find the match for search url
+            for (const section of sections) {
+                if (section.includes(url)) {
+                    const match = section.match(/path = (.+)/);
+                    if (match) {
+                        return Promise.resolve(match[1]);
+                    }
+                }
+            }
+            return Promise.reject(new Error(`Could not find submodule that matches ${url}`));
+        });
+    }
+    getSubmodules(urls) {
         return __awaiter(this, void 0, void 0, function* () {
             const modsInfo = [];
             core.startGroup(`📘 Detecting submodules`);
-            for (const path of paths) {
+            for (const url of urls) {
                 let headRef;
                 let baseRef;
+                const headPath = yield this.findPath(url, this.toTag);
+                const basePath = yield this.findPath(url, this.fromTag);
                 try {
-                    const resp = yield this.fetchRef(owner, repo, path, toTag);
+                    const resp = yield this.fetchRef(this.owner, this.repo, headPath, this.toTag);
                     if (resp.status === 200) {
                         headRef = resp.data;
                     }
                     else {
-                        core.warning(`Unable to find head ref. It looks like submodule '${path}' was removed. Ignoring.`);
+                        core.warning(`Unable to find head ref. It looks like submodule '${headPath}' was removed. Ignoring.`);
                         continue;
                     }
                 }
                 catch (error) {
-                    core.error(`Error retrieving submodule '${path}'.`);
+                    core.error(`Error retrieving submodule '${url}'.`);
                     throw error;
                 }
                 core.info(headRef.toString());
                 try {
-                    baseRef = (yield this.fetchRef(owner, repo, path, fromTag)).data;
+                    baseRef = (yield this.fetchRef(this.owner, this.repo, basePath, this.fromTag)).data;
                 }
                 catch (error) {
                     baseRef = headRef;
-                    core.warning(`Unable to find base ref. Perhaps the submodule '${path}' was newly added?`);
+                    core.warning(`Unable to find base ref. Perhaps the submodule '${url}' was newly added?`);
                 }
                 core.info(baseRef.toString());
                 if (!Array.isArray(baseRef) &&
@@ -1137,7 +1171,7 @@ class Submodules {
                     const repoInfo = this.getRepoInfo(headRef.submodule_git_url);
                     if (repoInfo) {
                         modsInfo.push({
-                            path,
+                            path: headPath,
                             baseRef: baseRef.sha,
                             headRef: headRef.sha,
                             owner: repoInfo.owner,
@@ -1146,7 +1180,7 @@ class Submodules {
                         core.info(`ℹ️ Submodule found: ${baseRef.submodule_git_url}
           repo: ${repoInfo.repo}
           owner: ${repoInfo.owner}
-          path: ${path}
+          path: ${headPath !== basePath ? `${basePath} => ${headPath}` : `${headPath}`}
           base: ${baseRef.sha}
           head: ${headRef.sha}`);
                     }
@@ -1155,7 +1189,7 @@ class Submodules {
                     }
                 }
                 else {
-                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${path}'.\n`, this.failOnError);
+                    (0, utils_1.failOrError)(`💥 Missing or couldn't resolve submodule path '${headPath}'.\n`, this.failOnError);
                 }
             }
             core.endGroup();
@@ -1968,16 +2002,16 @@ exports.resolveConfiguration = resolveConfiguration;
  * Reads in the configuration from the JSON file
  */
 function readConfiguration(filename) {
-    let rawdata;
+    let rawData;
     try {
-        rawdata = fs.readFileSync(filename, 'utf8');
+        rawData = fs.readFileSync(filename, 'utf8');
     }
     catch (error) {
         core.info(`⚠️ Configuration provided, but it couldn't be found. Fallback to Defaults.`);
         return null;
     }
     try {
-        const configurationJSON = JSON.parse(rawdata);
+        const configurationJSON = JSON.parse(rawData);
         return configurationJSON;
     }
     catch (error) {
